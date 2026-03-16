@@ -90,28 +90,33 @@ function App() {
           pointerEvents: 'none',
           display: 'flex',
           flexDirection: 'column',
-          gap: 8,
+          gap: 7,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 14, height: 14, borderRadius: 2, background: 'rgba(110,12,12,0.88)', border: '1px solid rgba(200,40,40,0.5)' }} />
-          <span>ACTIVE CONFLICT</span>
+        {([
+          { bg: 'rgba(110,12,12,0.88)',   border: 'rgba(200,40,40,0.5)',    label: 'ACTIVE CONFLICT'     },
+          { bg: 'rgba(140,55,10,0.87)',   border: 'rgba(200,80,20,0.5)',    label: 'MILITARY OPERATION'  },
+          { bg: 'rgba(110,70,8,0.86)',    border: 'rgba(190,130,20,0.4)',   label: 'CONFLICT IMPACTED'   },
+          { bg: 'rgba(80,20,70,0.86)',    border: 'rgba(150,40,150,0.4)',   label: 'CIVIL UNREST'        },
+          { bg: 'rgba(25,45,75,0.87)',    border: 'rgba(40,100,160,0.4)',   label: 'CEASEFIRE'           },
+          { bg: 'rgba(8,18,40,0.85)',     border: 'rgba(40,80,160,0.4)',    label: 'NO ACTIVE CONFLICT'  },
+        ] as const).map(({ bg, border, label }) => (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ width: 12, height: 12, borderRadius: 2, background: bg, border: `1px solid ${border}`, flexShrink: 0 }} />
+            <span>{label}</span>
+          </div>
+        ))}
+        <div style={{ marginTop: 5, display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 22, height: 3, background: '#C0392B', borderRadius: 2 }} />
+          <span>CONFLICT ARC</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 14, height: 14, borderRadius: 2, background: 'rgba(8,18,40,0.85)', border: '1px solid rgba(40,80,160,0.4)' }} />
-          <span>PEACEFUL</span>
-        </div>
-        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 24, height: 3, background: '#C0392B', borderRadius: 2 }} />
-          <span>CONFLICT</span>
+          <div style={{ width: 22, height: 3, background: '#D4821A', borderRadius: 2 }} />
+          <span>DIPLOMACY ARC</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 24, height: 3, background: '#D4821A', borderRadius: 2 }} />
-          <span>DIPLOMACY</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 24, height: 3, background: '#0D9E8A', borderRadius: 2 }} />
-          <span>TRADE</span>
+          <div style={{ width: 22, height: 3, background: '#0D9E8A', borderRadius: 2 }} />
+          <span>TRADE ARC</span>
         </div>
       </div>
 
