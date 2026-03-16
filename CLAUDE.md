@@ -108,6 +108,15 @@ Format documented in `backend/perplexity-spec/INSTRUCTIONS.md`. Key rules:
 
 The spec is the contract between Atlas and Perplexity. An out-of-date spec causes Perplexity to send stale formats that get rescued/coerced by the fuzzy validator rather than arriving correctly structured.
 
+### Keeping LIMITATIONS.md current
+`LIMITATIONS.md` documents confirmed technical limitations — things that are accepted, deferred, or blocked on external dependencies. Update it whenever:
+- A bug investigation reveals a root cause that can't be fixed cleanly right now
+- A fix attempt fails (document *what was tried and why it didn't work* — this prevents re-attempting the same dead end)
+- A limitation is resolved (remove or mark it resolved with a note on what fixed it)
+- A new external constraint is discovered (API limitation, library restriction, WebGL constraint, etc.)
+
+Do not duplicate items already in TASKS.md unless the limitation needs a root-cause explanation that a task entry can't hold.
+
 ### Keeping TASKS.md current
 `TASKS.md` is the source of truth for project progress. Update it at the end of every work session:
 - Mark completed items `✅`
