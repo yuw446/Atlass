@@ -187,13 +187,29 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   }, [hoveredCountry, selectedCountry]);
 
   const polygonLabel = useCallback((feat: object) => {
-    const f   = feat as GlobeFeature;
+    const f    = feat as GlobeFeature;
     const data = f.properties.countryData;
-    const name  = data?.name ?? f.properties.ADMIN ?? f.properties.ISO_A2 ?? '';
-    const flag  = data?.flag ?? '';
-    const inConflict  = f.properties.in_conflict ?? false;
-    const statusColor = inConflict ? '#e05050' : '#4a9a6a';
-    const statusLabel = inConflict ? 'ACTIVE CONFLICT' : 'NO ACTIVE CONFLICT';
+    const name = data?.name ?? f.properties.ADMIN ?? f.properties.ISO_A2 ?? '';
+    const flag = data?.flag ?? '';
+    const status = data?.conflict_status ?? (f.properties.in_conflict ? 'active_conflict' : 'peaceful');
+    const STATUS_LABEL: Record<string, string> = {
+      active_conflict:    'ACTIVE CONFLICT',
+      military_operation: 'MILITARY OPERATION',
+      impacted:           'CONFLICT IMPACTED',
+      civil_unrest:       'CIVIL UNREST',
+      ceasefire:          'CEASEFIRE',
+      peaceful:           'NO ACTIVE CONFLICT',
+    };
+    const STATUS_COLOR: Record<string, string> = {
+      active_conflict:    '#e05050',
+      military_operation: '#e07030',
+      impacted:           '#d4a030',
+      civil_unrest:       '#c060c0',
+      ceasefire:          '#60a0d0',
+      peaceful:           '#4ab870',
+    };
+    const statusLabel = STATUS_LABEL[status] ?? 'UNKNOWN';
+    const statusColor = STATUS_COLOR[status] ?? '#aaa';
     return `<div style="
         background:rgba(8,11,20,0.92);border:1px solid rgba(255,255,255,0.12);
         border-radius:4px;padding:8px 12px;font-family:'Space Mono',monospace;
