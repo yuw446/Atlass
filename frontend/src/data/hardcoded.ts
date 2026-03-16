@@ -15,7 +15,7 @@ export const HARDCODED_COUNTRIES: CountryData[] = [
   { code: 'DE', name: 'Germany',     stability_score: 79, unrest_level: 0, in_conflict: false, flag_color: '#DD0000', centroid: [51.2, 10.4],    flag: '🇩🇪' },
   { code: 'GB', name: 'UK',          stability_score: 76, unrest_level: 0, in_conflict: false, flag_color: '#012169', centroid: [55.4, -3.4],    flag: '🇬🇧' },
   { code: 'FR', name: 'France',      stability_score: 75, unrest_level: 1, in_conflict: false, flag_color: '#002395', centroid: [46.2, 2.2],     flag: '🇫🇷' },
-  { code: 'US', name: 'USA',         stability_score: 72, unrest_level: 1, in_conflict: false, flag_color: '#3C3B6E', centroid: [37.1, -95.7],   flag: '🇺🇸' },
+  { code: 'US', name: 'USA',         stability_score: 72, unrest_level: 1, in_conflict: true,  flag_color: '#3C3B6E', centroid: [37.1, -95.7],   flag: '🇺🇸' },
   { code: 'KR', name: 'South Korea', stability_score: 74, unrest_level: 1, in_conflict: false, flag_color: '#003478', centroid: [35.9, 127.8],   flag: '🇰🇷' },
 
   // Mid tier
@@ -33,6 +33,8 @@ export const HARDCODED_COUNTRIES: CountryData[] = [
   { code: 'VE', name: 'Venezuela',     stability_score: 32, unrest_level: 3, in_conflict: false, flag_color: '#CF142B', centroid: [6.4, -66.6],  flag: '🇻🇪' },
 
   // Active conflict zone tier
+  { code: 'IR', name: 'Iran',        stability_score: 22, unrest_level: 3, in_conflict: true,  flag_color: '#239F40', centroid: [32.4, 53.7],   flag: '🇮🇷' },
+  { code: 'LB', name: 'Lebanon',     stability_score: 18, unrest_level: 3, in_conflict: true,  flag_color: '#00A651', centroid: [33.9, 35.5],   flag: '🇱🇧' },
   { code: 'RU', name: 'Russia',      stability_score: 30, unrest_level: 2, in_conflict: true,  flag_color: '#003399', centroid: [61.5, 105.3],  flag: '🇷🇺' },
   { code: 'IL', name: 'Israel',      stability_score: 28, unrest_level: 3, in_conflict: true,  flag_color: '#0038B8', centroid: [31.0, 34.9],   flag: '🇮🇱' },
   { code: 'ET', name: 'Ethiopia',    stability_score: 25, unrest_level: 3, in_conflict: true,  flag_color: '#078930', centroid: [9.1, 40.5],    flag: '🇪🇹' },
@@ -59,14 +61,20 @@ export const HARDCODED_ARCS: ArcData[] = [
   { startLat: -25.3,startLng: 133.8,  endLat: 35.9,  endLng: 104.2,  type: 'trade',    intensity: 0.5, label: 'Australia–China Trade' },
 
   // Conflict arcs (red)
-  { startLat: 61.5, startLng: 105.3,  endLat: 48.4,  endLng: 31.2,   type: 'conflict', intensity: 1.0, label: 'Russia–Ukraine Conflict' },
-  { startLat: 31.0, startLng: 34.9,   endLat: 15.6,  endLng: 48.5,   type: 'conflict', intensity: 0.7, label: 'Israel–Yemen Tension' },
-  { startLat: 12.9, startLng: 30.2,   endLat: 9.1,   endLng: 40.5,   type: 'conflict', intensity: 0.6, label: 'Sudan–Ethiopia Conflict' },
+  { startLat: 61.5, startLng: 105.3,  endLat: 48.4,  endLng: 31.2,   type: 'conflict', intensity: 1.0, label: 'Russia–Ukraine' },
+  { startLat: 37.1, startLng: -95.7,  endLat: 32.4,  endLng: 53.7,   type: 'conflict', intensity: 1.0, label: 'US–Iran (Op. Epic Fury)' },
+  { startLat: 31.0, startLng: 34.9,   endLat: 32.4,  endLng: 53.7,   type: 'conflict', intensity: 1.0, label: 'Israel–Iran' },
+  { startLat: 31.0, startLng: 34.9,   endLat: 33.9,  endLng: 35.5,   type: 'conflict', intensity: 0.95,label: 'Israel–Lebanon' },
+  { startLat: 33.9, startLng: 67.7,   endLat: 30.4,  endLng: 69.3,   type: 'conflict', intensity: 0.85,label: 'Afghanistan–Pakistan' },
+  { startLat: 12.9, startLng: 30.2,   endLat: 9.1,   endLng: 40.5,   type: 'conflict', intensity: 0.6, label: 'Sudan–Ethiopia' },
 
   // Diplomacy arcs (amber)
+  { startLat: 37.1, startLng: -95.7,  endLat: 48.4,  endLng: 31.2,   type: 'diplomacy',intensity: 0.75,label: 'US–Ukraine Peace Talks' },
   { startLat: 51.2, startLng: 10.4,   endLat: 55.4,  endLng: -3.4,   type: 'diplomacy',intensity: 0.5, label: 'EU–UK Relations' },
-  { startLat: 37.1, startLng: -95.7,  endLat: 56.1,  endLng: -106.3, type: 'diplomacy',intensity: 0.8, label: 'US–Canada Relations' },
   { startLat: 35.9, startLng: 127.8,  endLat: 36.2,  endLng: 138.2,  type: 'diplomacy',intensity: 0.6, label: 'Korea–Japan Diplomacy' },
+
+  // Trade arcs (teal) — keep existing
+  { startLat: 35.9, startLng: 104.2,  endLat: 32.4,  endLng: 53.7,   type: 'trade',    intensity: 0.6, label: 'China–Iran Trade' },
 ];
 
 // ISO2 code mapping for known GeoJSON mismatches

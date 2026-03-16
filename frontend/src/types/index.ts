@@ -42,7 +42,10 @@ export interface GlobeFeature {
 
 export interface EventCard {
   summary: string;
+  source_url?: string;
   image_url?: string;
+  event_type?: string;
+  published_at?: string;
 }
 
 export interface DigestData {

@@ -46,11 +46,17 @@ function App() {
           gap: 8,
         }}
       >
+        {/* Fill states */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{ width: 24, height: 3, background: '#0D9E8A', borderRadius: 2 }} />
-          <span>TRADE</span>
+          <div style={{ width: 14, height: 14, borderRadius: 2, background: 'rgba(110,12,12,0.88)', border: '1px solid rgba(200,40,40,0.5)' }} />
+          <span>ACTIVE CONFLICT</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 14, height: 14, borderRadius: 2, background: 'rgba(8,18,40,0.85)', border: '1px solid rgba(40,80,160,0.4)' }} />
+          <span>PEACEFUL</span>
+        </div>
+        {/* Arc types */}
+        <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
           <div style={{ width: 24, height: 3, background: '#C0392B', borderRadius: 2 }} />
           <span>CONFLICT</span>
         </div>
@@ -58,16 +64,9 @@ function App() {
           <div style={{ width: 24, height: 3, background: '#D4821A', borderRadius: 2 }} />
           <span>DIPLOMACY</span>
         </div>
-        <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-          <div style={{
-            width: 60, height: 6, borderRadius: 3,
-            background: 'linear-gradient(to right, #7A1515, #8B6914, #1B4F8A)',
-          }} />
-          <span>STABILITY</span>
-        </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', width: 60, marginTop: -6 }}>
-          <span style={{ fontSize: 8 }}>0</span>
-          <span style={{ fontSize: 8 }}>100</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <div style={{ width: 24, height: 3, background: '#0D9E8A', borderRadius: 2 }} />
+          <span>TRADE</span>
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import { redis } from '../lib/redis.js';
 import { generateDigest, FALLBACK_EVENTS, DIGEST_TTL_SECONDS } from '../lib/claude.js';
+import { readCountryFromDisk } from '../lib/perplexity/ingest.js';
 
 const router = Router();
 
@@ -30,6 +31,27 @@ router.post('/', async (req: Request, res: Response) => {
   } catch {
     // Redis unavailable — proceed to generate
   }
+
+  // Check normalized disk data from Perplexity pipeline
+  try {
+    const normalized = await readCountryFromDisk(country_code);
+    if (normalized && normalized.events.length > 0) {
+      const payload = {
+        country_code,
+        country_name: normalized.name ?? (country_name ?? country_code),
+        in_conflict: normalized.in_conflict,
+        events: normalized.events,
+        updated_at: new Date().toISOString(),
+        cached: false,
+        source: 'perplexity',
+      };
+      // Populate Redis cache while we're here (best-effort)
+      try {
+        await redis.setex(cacheKey, DIGEST_TTL_SECONDS, JSON.stringify(payload));
+      } catch { /* non-fatal */ }
+      return res.json(payload);
+    }
+  } catch { /* disk read failed — continue to Claude */ }
 
   // No API key — return graceful fallback
   if (!process.env.ANTHROPIC_API_KEY) {
