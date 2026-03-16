@@ -11,8 +11,11 @@ import {
   FILL_HOVER_PEACEFUL,
   FILL_SELECTED_CONFLICT,
   FILL_SELECTED_PEACEFUL,
+  STATUS_FILLS,
+  STATUS_HOVER_FILLS,
+  STATUS_SELECTED_FILLS,
 } from './colorUtils';
-import type { GlobeFeature, ArcData } from '../../types';
+import type { GlobeFeature, ArcData, ConflictStatus } from '../../types';
 
 interface GlobeRendererProps {
   width: number;
@@ -160,11 +163,11 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   // --- Polygon color functions ---
   const polygonCapColor = useCallback((feat: object) => {
     const f = feat as GlobeFeature;
-    const code       = f.properties.ISO_A2;
-    const isConflict = f.properties.in_conflict ?? false;
-    if (code === selectedCountry) return isConflict ? FILL_SELECTED_CONFLICT : FILL_SELECTED_PEACEFUL;
-    if (code === hoveredCountry)  return isConflict ? FILL_HOVER_CONFLICT    : FILL_HOVER_PEACEFUL;
-    return isConflict ? FILL_CONFLICT : FILL_PEACEFUL;
+    const code   = f.properties.ISO_A2;
+    const status = (f.properties.countryData?.conflict_status ?? (f.properties.in_conflict ? 'active_conflict' : 'peaceful')) as ConflictStatus;
+    if (code === selectedCountry) return STATUS_SELECTED_FILLS[status];
+    if (code === hoveredCountry)  return STATUS_HOVER_FILLS[status];
+    return STATUS_FILLS[status];
   }, [hoveredCountry, selectedCountry]);
 
   const polygonAltitude = useCallback((feat: object) => {

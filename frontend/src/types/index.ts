@@ -1,3 +1,11 @@
+export type ConflictStatus =
+  | 'active_conflict'      // direct armed hostilities on own territory
+  | 'military_operation'   // own forces engaged abroad
+  | 'impacted'             // under attack / economic siege but not declared war
+  | 'civil_unrest'         // internal political violence or instability
+  | 'ceasefire'            // recently paused hostilities
+  | 'peaceful';            // no significant conflict involvement
+
 export interface CountryData {
   code: string;           // ISO 3166-1 alpha-2
   name: string;
@@ -5,6 +13,7 @@ export interface CountryData {
   unrest_level: 0 | 1 | 2 | 3;
   in_conflict: boolean;   // active armed conflict
   flag_color: string;     // dominant hex color from national flag (for border)
+  conflict_status: ConflictStatus;
   centroid: [number, number]; // [lat, lng]
   flag?: string;           // emoji flag
 }

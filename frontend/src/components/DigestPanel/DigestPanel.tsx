@@ -59,6 +59,16 @@ function formatEventDate(iso?: string): string | null {
   return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}  ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
 }
 
+const STATUS_DISPLAY: Record<string, { label: string; color: string; bg: string; border: string }> = {
+  active_conflict:    { label: 'ACTIVE CONFLICT',     color: '#e05050', bg: 'rgba(150,15,15,0.3)',  border: 'rgba(200,40,40,0.4)'   },
+  military_operation: { label: 'MILITARY OPERATION',  color: '#e07030', bg: 'rgba(130,45,10,0.3)',  border: 'rgba(200,80,20,0.4)'   },
+  impacted:           { label: 'CONFLICT IMPACTED',   color: '#d4a030', bg: 'rgba(110,70,8,0.3)',   border: 'rgba(190,130,20,0.4)'  },
+  civil_unrest:       { label: 'CIVIL UNREST',        color: '#c060c0', bg: 'rgba(75,18,75,0.3)',   border: 'rgba(150,40,150,0.4)'  },
+  ceasefire:          { label: 'CEASEFIRE',           color: '#60a0d0', bg: 'rgba(20,55,95,0.3)',   border: 'rgba(40,100,160,0.4)'  },
+  peaceful:           { label: 'NO ACTIVE CONFLICT',  color: '#4ab870', bg: 'rgba(15,80,40,0.25)',  border: 'rgba(40,160,80,0.35)'  },
+};
+const DEFAULT_STATUS_DISPLAY = STATUS_DISPLAY.peaceful;
+
 // ---------------------------------------------------------------------------
 // Event type badge
 // ---------------------------------------------------------------------------
@@ -174,6 +184,9 @@ export default function DigestPanel() {
   const country    = selectedCountry ? countryMap.get(selectedCountry) : null;
   const inConflict = digestData?.in_conflict ?? country?.in_conflict ?? false;
 
+  const conflictStatus = country?.conflict_status ?? (inConflict ? 'active_conflict' : 'peaceful');
+  const statusDisplay  = STATUS_DISPLAY[conflictStatus] ?? DEFAULT_STATUS_DISPLAY;
+
   // Sort newest first; events without a date fall to the bottom
   const events = (digestData?.events ?? []).slice().sort((a, b) => {
     if (!a.published_at && !b.published_at) return 0;
@@ -184,10 +197,10 @@ export default function DigestPanel() {
 
   if (!visible) return null;
 
-  const conflictBg     = inConflict ? 'rgba(150,15,15,0.3)'   : 'rgba(15,80,40,0.25)';
-  const conflictBorder = inConflict ? 'rgba(200,40,40,0.4)'   : 'rgba(40,160,80,0.35)';
-  const conflictColor  = inConflict ? '#e05050'                : '#4ab870';
-  const cardBorder     = inConflict ? 'rgba(180,30,30,0.45)'  : 'rgba(40,100,180,0.35)';
+  const conflictBg     = statusDisplay.bg;
+  const conflictBorder = statusDisplay.border;
+  const conflictColor  = statusDisplay.color;
+  const cardBorder     = inConflict ? 'rgba(180,30,30,0.45)' : 'rgba(40,100,180,0.35)';
 
   return (
     <>
@@ -243,7 +256,7 @@ export default function DigestPanel() {
               color: conflictColor,
             }}>
               <span style={{ fontSize: 8 }}>●</span>
-              {inConflict ? 'ACTIVE CONFLICT' : 'NO ACTIVE CONFLICT'}
+              {statusDisplay.label}
             </div>
           )}
         </div>

@@ -16,6 +16,39 @@ interface GeoJSON {
   features: GlobeFeature[];
 }
 
+// Densify polygon edges longer than MAX_EDGE_DEG degrees to prevent Globe.gl
+// tessellation artifacts on large/high-latitude polygons (e.g. Greenland, Russia).
+const MAX_EDGE_DEG = 3;
+
+function densifyRing(ring: number[][]): number[][] {
+  const out: number[][] = [];
+  for (let i = 0; i < ring.length - 1; i++) {
+    out.push(ring[i]);
+    const dLng = ring[i + 1][0] - ring[i][0];
+    const dLat = ring[i + 1][1] - ring[i][1];
+    const dist  = Math.sqrt(dLng * dLng + dLat * dLat);
+    if (dist > MAX_EDGE_DEG) {
+      const steps = Math.ceil(dist / MAX_EDGE_DEG);
+      for (let s = 1; s < steps; s++) {
+        out.push([ring[i][0] + dLng * (s / steps), ring[i][1] + dLat * (s / steps)]);
+      }
+    }
+  }
+  out.push(ring[ring.length - 1]);
+  return out;
+}
+
+function densifyFeature(f: GlobeFeature): GlobeFeature {
+  const g = f.geometry;
+  if (g.type === 'Polygon') {
+    return { ...f, geometry: { ...g, coordinates: (g.coordinates as number[][][]).map(densifyRing) } };
+  }
+  if (g.type === 'MultiPolygon') {
+    return { ...f, geometry: { ...g, coordinates: (g.coordinates as number[][][][]).map(poly => poly.map(densifyRing)) } };
+  }
+  return f;
+}
+
 export function useGlobeData() {
   const setFeatures = useGlobeStore(s => s.setFeatures);
   const setArcs = useGlobeStore(s => s.setArcs);
@@ -58,7 +91,7 @@ export function useGlobeData() {
           }
         }
 
-        setFeatures(enriched);
+        setFeatures(enriched.map(densifyFeature));
       })
       .catch(err => console.error('[ATLAS] Failed to load GeoJSON:', err));
   }, [setFeatures, setArcs, setCountryMap]);

@@ -64,10 +64,40 @@ export const UNREST_ALTITUDE: Record<0 | 1 | 2 | 3, number> = {
   3: 0.025,
 };
 
-/** Polygon fill colors: event-driven, not stability-scored */
-export const FILL_CONFLICT  = 'rgba(110, 12, 12, 0.88)';  // deep crimson — active conflict
-export const FILL_PEACEFUL  = 'rgba(8, 18, 40, 0.85)';    // dark navy — no active conflict
-export const FILL_HOVER_CONFLICT  = 'rgba(180, 30, 30, 0.92)';
-export const FILL_HOVER_PEACEFUL  = 'rgba(20, 40, 80, 0.92)';
-export const FILL_SELECTED_CONFLICT  = 'rgba(220, 50, 50, 0.95)';
-export const FILL_SELECTED_PEACEFUL  = 'rgba(30, 60, 120, 0.95)';
+import type { ConflictStatus } from '../../types';
+
+// Status-based fill colors — used instead of the old binary FILL_CONFLICT/FILL_PEACEFUL
+export const STATUS_FILLS: Record<ConflictStatus, string> = {
+  active_conflict:    'rgba(110,  12,  12, 0.88)',   // deep crimson
+  military_operation: 'rgba(140,  55,  10, 0.87)',   // dark burnt-orange
+  impacted:           'rgba(110,  70,   8, 0.86)',   // dark amber
+  civil_unrest:       'rgba( 80,  20,  70, 0.86)',   // dark plum
+  ceasefire:          'rgba( 25,  45,  75, 0.87)',   // steel blue-grey
+  peaceful:           'rgba(  8,  18,  40, 0.85)',   // dark navy
+};
+
+export const STATUS_HOVER_FILLS: Record<ConflictStatus, string> = {
+  active_conflict:    'rgba(180,  30,  30, 0.92)',
+  military_operation: 'rgba(200,  80,  20, 0.92)',
+  impacted:           'rgba(180, 110,  15, 0.92)',
+  civil_unrest:       'rgba(130,  35, 120, 0.92)',
+  ceasefire:          'rgba( 35,  65, 110, 0.92)',
+  peaceful:           'rgba( 20,  40,  80, 0.92)',
+};
+
+export const STATUS_SELECTED_FILLS: Record<ConflictStatus, string> = {
+  active_conflict:    'rgba(220,  50,  50, 0.95)',
+  military_operation: 'rgba(230, 110,  30, 0.95)',
+  impacted:           'rgba(220, 150,  20, 0.95)',
+  civil_unrest:       'rgba(170,  50, 160, 0.95)',
+  ceasefire:          'rgba( 45,  85, 140, 0.95)',
+  peaceful:           'rgba( 30,  60, 120, 0.95)',
+};
+
+// Keep legacy constants as aliases so any leftover imports still compile
+export const FILL_CONFLICT          = STATUS_FILLS.active_conflict;
+export const FILL_PEACEFUL          = STATUS_FILLS.peaceful;
+export const FILL_HOVER_CONFLICT    = STATUS_HOVER_FILLS.active_conflict;
+export const FILL_HOVER_PEACEFUL    = STATUS_HOVER_FILLS.peaceful;
+export const FILL_SELECTED_CONFLICT = STATUS_SELECTED_FILLS.active_conflict;
+export const FILL_SELECTED_PEACEFUL = STATUS_SELECTED_FILLS.peaceful;
