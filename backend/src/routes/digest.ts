@@ -6,8 +6,13 @@ import { readCountryFromDisk } from '../lib/perplexity/ingest.js';
 
 const router = Router();
 
+// GeoJSON ISO_A2 codes that differ from our normalised two-letter codes
+const GEO_ALIASES: Record<string, string> = {
+  'CN-TW': 'TW',
+};
+
 const RequestSchema = z.object({
-  country_code: z.string().length(2).toUpperCase(),
+  country_code: z.string().min(2).max(6).toUpperCase(),
   country_name: z.string().optional(),
   in_conflict: z.boolean().optional().default(false),
   stability_score: z.number().min(0).max(100).optional(),
@@ -19,7 +24,9 @@ router.post('/', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Invalid request', details: parsed.error.flatten() });
   }
 
-  const { country_code, country_name, in_conflict = false, stability_score = 50 } = parsed.data;
+  const { country_name, in_conflict = false, stability_score = 50 } = parsed.data;
+  // Resolve GeoJSON alias → normalised code (e.g. CN-TW → TW)
+  const country_code = GEO_ALIASES[parsed.data.country_code] ?? parsed.data.country_code;
   const cacheKey = `atlas:digest:${country_code}`;
 
   // Cache hit — return immediately
@@ -45,7 +52,6 @@ router.post('/', async (req: Request, res: Response) => {
         cached: false,
         source: 'perplexity',
       };
-      // Populate Redis cache while we're here (best-effort)
       try {
         await redis.setex(cacheKey, DIGEST_TTL_SECONDS, JSON.stringify(payload));
       } catch { /* non-fatal */ }
@@ -84,9 +90,7 @@ router.post('/', async (req: Request, res: Response) => {
 
     try {
       await redis.setex(cacheKey, DIGEST_TTL_SECONDS, JSON.stringify(payload));
-    } catch {
-      // Non-fatal
-    }
+    } catch { /* non-fatal */ }
 
     return res.json(payload);
   } catch (err) {
