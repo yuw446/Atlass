@@ -1,0 +1,693 @@
+{
+  "package_id": "perplexity_20260315_223600_global-hotspots",
+  "generated_at": "2026-03-15T22:36:00Z",
+  "query_context": "Global conflict zones and geopolitical hotspots as of mid-March 2026, covering active wars, escalating tensions, and major diplomatic developments",
+  "countries": [
+    {
+      "code": "UA",
+      "name": "Ukraine",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Russian forces conduct a large-scale series of drone and missile strikes on March 13-14 causing significant civilian casualties in Kyiv. The barrage involves around 430 drones and 68 missiles, most of which are intercepted by air defense systems, though energy infrastructure sustains heavy damage across six regions.",
+          "event_type": "military",
+          "published_at": "2026-03-14",
+          "source_url": "https://understandingwar.org/research/russia-ukraine/russian-offensive-campaign-assessment-march-14-2026/"
+        },
+        {
+          "summary": "The European Union extends sanctions against approximately 2,600 individuals and entities supporting Russia's military actions in Ukraine for an additional six months until September 15. The agreement overcomes a previous impasse caused by objections from Hungary and Slovakia.",
+          "event_type": "diplomatic",
+          "published_at": "2026-03-14",
+          "source_url": "https://www.aljazeera.com/news/2026/3/14/eu-sanctions-against-russia-renewed-amid-deadly-attacks-on-ukraine"
+        },
+        {
+          "summary": "Ukrainian forces reclaim more territory than they have lost for the first time since the summer 2023 offensive, with February 2026 marking a net territorial gain of approximately 400 square kilometers. Advances concentrate in the Oleksandrivka direction at the junction of Donetsk, Zaporizhzhia, and Dnipropetrovsk oblasts.",
+          "event_type": "military",
+          "published_at": "2026-03-10",
+          "source_url": "https://understandingwar.org/research/russia-ukraine/russian-offensive-campaign-assessment-march-3-2026/"
+        },
+        {
+          "summary": "A 1,000-prisoner exchange between Russia and Ukraine proceeds in two phases following the first round of trilateral US-Ukraine-Russia meetings in Geneva. Political negotiations remain stalled, with Russian envoys insisting on full control of Donbas while Ukraine demands security guarantees lasting more than 20 years.",
+          "event_type": "diplomatic",
+          "published_at": "2026-03-06",
+          "source_url": "https://en.wikipedia.org/wiki/2026_United_States%E2%80%93Ukraine%E2%80%93Russia_meetings_in_Geneva"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "RU",
+          "partner_name": "Russia",
+          "type": "conflict",
+          "intensity": 0.98,
+          "summary": "Active armed conflict along the eastern front; no ceasefire in force despite trilateral Geneva talks."
+        },
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "diplomacy",
+          "intensity": 0.85,
+          "summary": "Primary arms supplier and diplomatic backer; brokering trilateral peace talks with June 2026 deadline."
+        },
+        {
+          "partner_code": "DE",
+          "partner_name": "Germany",
+          "type": "trade",
+          "intensity": 0.65,
+          "summary": "Major reconstruction finance contributor within the EU framework; extended sanctions package."
+        }
+      ]
+    },
+    {
+      "code": "RU",
+      "name": "Russia",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Russia's winter 2025-2026 long-range missile and drone campaign targeting Ukrainian energy and civilian infrastructure fails to achieve its objectives of undermining Ukrainian resolve. Kremlin insiders indicate the war is expected to persist at least until the State Duma elections in September 2026.",
+          "event_type": "military",
+          "published_at": "2026-03-03",
+          "source_url": "https://understandingwar.org/research/russia-ukraine/russian-offensive-campaign-assessment-march-3-2026/"
+        },
+        {
+          "summary": "Ukrainian long-range strikes target critical Russian infrastructure including the Afips oil refinery in Krasnodar region and the Kremniy El military microelectronics factory in Bryansk. Ukrainian drones also damage S-400 missile systems in Tula Oblast and hit the Novorossiysk oil terminal, destroying six of seven oil berths.",
+          "event_type": "military",
+          "published_at": "2026-03-14",
+          "source_url": "https://www.aljazeera.com/news/2026/3/14/eu-sanctions-against-russia-renewed-amid-deadly-attacks-on-ukraine"
+        },
+        {
+          "summary": "A classified Kremlin assessment obtained by Ukrainian intelligence reveals approximately 1,315,000 Russian soldiers killed or wounded since the full-scale invasion began. President Zelenskyy claims the actual figures are understated. The Russian military command continues to set unrealistic operational deadlines.",
+          "event_type": "military",
+          "published_at": "2026-03-10",
+          "source_url": "https://en.wikipedia.org/wiki/Timeline_of_the_Russo-Ukrainian_war_(1_January_2026_%E2%80%93_present)"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "UA",
+          "partner_name": "Ukraine",
+          "type": "conflict",
+          "intensity": 0.98,
+          "summary": "Invading party; active combat operations across eastern Ukraine with winter infrastructure campaign failing."
+        },
+        {
+          "partner_code": "CN",
+          "partner_name": "China",
+          "type": "trade",
+          "intensity": 0.75,
+          "summary": "Primary trade partner post-Western sanctions; diplomatic cover at UN despite US secondary tariff threats."
+        },
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "diplomacy",
+          "intensity": 0.6,
+          "summary": "Deeply adversarial; participating in trilateral Geneva talks but insisting on full Donbas control."
+        }
+      ]
+    },
+    {
+      "code": "IL",
+      "name": "Israel",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Israel plans a massive ground invasion of southern Lebanon to capture the entire region south of the Litani River and dismantle Hezbollah's military capabilities. IDF ground troops conduct targeted raids, killing dozens of Hezbollah operatives, while the military issues evacuation warnings across southern Lebanon and parts of Beirut.",
+          "event_type": "military",
+          "published_at": "2026-03-14",
+          "source_url": "https://www.axios.com/2026/03/14/israel-lebanon-ground-invasion-hezbollah"
+        },
+        {
+          "summary": "Israel continues joint military operations with the United States against Iran under Operation Epic Fury, launched on February 28. The campaign involves nearly 900 strikes in its first 12 hours targeting Iranian missiles, air defenses, military infrastructure, and leadership including the killing of Supreme Leader Ali Khamenei.",
+          "event_type": "military",
+          "published_at": "2026-03-15",
+          "source_url": "https://www.britannica.com/event/2026-Iran-Conflict"
+        },
+        {
+          "summary": "France draws up a ceasefire proposal for Lebanon that would require Lebanese government recognition of Israel. Lebanon's government accepts the proposal as a basis for talks, while the US and Israel review the terms. The Trump administration supports Israeli action to disarm Hezbollah but pushes for negotiations on a post-conflict agreement.",
+          "event_type": "diplomatic",
+          "published_at": "2026-03-14",
+          "source_url": "https://www.timesofisrael.com/liveblog-march-14-2026/"
+        },
+        {
+          "summary": "Despite the January 2025 Gaza ceasefire, Israel continues military operations in the Strip including airstrikes, shelling, and gunfire. Hundreds of Palestinians are killed since the ceasefire began. Israel closes the Rafah border crossing on March 1 citing security adjustments related to the Iran war, later partially reopening Kerem Shalom for humanitarian aid.",
+          "event_type": "humanitarian",
+          "published_at": "2026-03-13",
+          "source_url": "https://www.aljazeera.com/news/2026/3/13/whats-happened-in-gaza-and-the-west-bank-since-the-start-of-the-iran-war"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "IR",
+          "partner_name": "Iran",
+          "type": "conflict",
+          "intensity": 1.0,
+          "summary": "Active war under Operation Epic Fury; coordinated strikes with the US targeting Iranian leadership and military infrastructure."
+        },
+        {
+          "partner_code": "LB",
+          "partner_name": "Lebanon",
+          "type": "conflict",
+          "intensity": 0.95,
+          "summary": "Major ground invasion of southern Lebanon underway targeting Hezbollah; over 820 killed and nearly 1 million displaced since March 2."
+        },
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "diplomacy",
+          "intensity": 0.95,
+          "summary": "Joint military operations against Iran; primary strategic and diplomatic partner in regional conflict."
+        }
+      ]
+    },
+    {
+      "code": "IR",
+      "name": "Iran",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Iran's foreign minister Abbas Araghchi rejects claims that Tehran is seeking a ceasefire with the United States, declaring Iran is ready for a long war. The conflict enters its third week with continued Israeli strikes on Tehran, Hamadan, and Isfahan while Iran conducts retaliatory strikes on Israeli cities.",
+          "event_type": "military",
+          "published_at": "2026-03-15",
+          "source_url": "https://www.npr.org/2026/03/15/nx-s1-5748472/us-military-six-killed-iran-war"
+        },
+        {
+          "summary": "Iran's closure of the Strait of Hormuz disrupts approximately 20% of global oil supplies, causing Brent crude to surge to $120 per barrel. Gulf state oil production drops by at least 10 million barrels per day as of March 12, the largest supply disruption in the history of the global oil market.",
+          "event_type": "economic",
+          "published_at": "2026-03-15",
+          "source_url": "https://en.wikipedia.org/wiki/Economic_impact_of_the_2026_Iran_war"
+        },
+        {
+          "summary": "Iran launches strikes on Gulf states including Bahrain, Saudi Arabia, and the UAE, warning civilians to evacuate three major UAE ports. Two Iranian drones attack Qatari gas facilities, leading QatarEnergy to halt all gas production and declare Force Majeure on contracts.",
+          "event_type": "military",
+          "published_at": "2026-03-15",
+          "source_url": "https://www.euronews.com/2026/03/15/iran-continues-strikes-on-gulf-states-day-after-us-threatens-oil-facilities"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "conflict",
+          "intensity": 1.0,
+          "summary": "Active war since February 28 under Operation Epic Fury; over 2,000 dead across the region."
+        },
+        {
+          "partner_code": "IL",
+          "partner_name": "Israel",
+          "type": "conflict",
+          "intensity": 1.0,
+          "summary": "Joint US-Israeli strikes killed Supreme Leader Khamenei; ongoing retaliatory exchanges of missiles and drones."
+        },
+        {
+          "partner_code": "CN",
+          "partner_name": "China",
+          "type": "trade",
+          "intensity": 0.7,
+          "summary": "Largest trade partner importing $2.86 billion in Iranian goods in 2025; potential US secondary tariff target."
+        }
+      ]
+    },
+    {
+      "code": "SD",
+      "name": "Sudan",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "The RSF conducts a drone strike south of Khartoum that targets a secondary school and a hospital, killing seventeen civilians, most of them students. Separately, Médecins Sans Frontières accuses Sudan's army of a drone strike on a market near the Chad border in Darfur that kills four and injures dozens.",
+          "event_type": "humanitarian",
+          "published_at": "2026-03-12",
+          "source_url": "https://www.cfr.org/global-conflict-tracker/conflict/power-struggle-sudan"
+        },
+        {
+          "summary": "The Sudanese Armed Forces capture Bara, the second-largest city in North Kordofan state, continuing to secure positions around the state capital el-Obeid. Frontlines shift across North Darfur, North Kordofan, South Kordofan, and Blue Nile states with drone strikes inflicting heavy civilian casualties on both sides.",
+          "event_type": "military",
+          "published_at": "2026-03-06",
+          "source_url": "https://www.cfr.org/global-conflict-tracker/conflict/power-struggle-sudan"
+        },
+        {
+          "summary": "The UN Security Council marks 1,000 days of war in Sudan with stark warnings of genocide, mass rape, and regional spillover. Over 100,000 have been killed, millions are displaced, and food insecurity has become catastrophic. Chad closes its border with Sudan after RSF fighters enter the country fleeing SAF forces.",
+          "event_type": "humanitarian",
+          "published_at": "2026-02-19",
+          "source_url": "https://press.un.org/en/2026/sc16300.doc.htm"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "TD",
+          "partner_name": "Chad",
+          "type": "diplomacy",
+          "intensity": 0.6,
+          "summary": "Border closed after RSF fighters entered Chad; seven Chadian soldiers killed in confrontation with RSF elements."
+        },
+        {
+          "partner_code": "ET",
+          "partner_name": "Ethiopia",
+          "type": "conflict",
+          "intensity": 0.45,
+          "summary": "SAF strikes supply convoys near the Ethiopia-Sudan border; regional spillover concerns escalating."
+        },
+        {
+          "partner_code": "AE",
+          "partner_name": "UAE",
+          "type": "diplomacy",
+          "intensity": 0.5,
+          "summary": "SAF rejects UAE-mediated peace deal; weapons continue to transit through Sudan's neighbours."
+        }
+      ]
+    },
+    {
+      "code": "MM",
+      "name": "Myanmar",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "The Myanmar military carries out increasing airstrikes in 2025-2026 including deliberate attacks on civilians in opposition-held areas. Fighting takes place in all 14 states and regions, with strikes hitting residential areas, schools, hospitals, religious sites, and camps for internally displaced people.",
+          "event_type": "military",
+          "published_at": "2026-01-08",
+          "source_url": "https://www.hrw.org/world-report/2026/country-chapters/myanmar"
+        },
+        {
+          "summary": "The junta holds sham elections in three phases between December 2025 and January 2026 amid continued violence. The Spring Revolution Alliance emerges in mid-December 2025, uniting 19 armed factions including ethnic actors and independent PDFs seeking strategic military coordination against the Tatmadaw.",
+          "event_type": "political",
+          "published_at": "2026-01-26",
+          "source_url": "https://asiatimes.com/2026/01/myanmars-war-headed-for-a-tipping-point-in-2026/"
+        },
+        {
+          "summary": "Fiber-optic first-person-view drone technology begins transforming the battlefield as resistance forces adopt tactics proven in Ukraine. The Tatmadaw continues a \"Three Alls\" counterinsurgency campaign in the Bamar heartland while China backs the junta and ASEAN remains constrained by non-interference principles.",
+          "event_type": "military",
+          "published_at": "2026-02-17",
+          "source_url": "https://eastasiaforum.org/2026/02/17/myanmar-without-a-path-to-recovery/"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "CN",
+          "partner_name": "China",
+          "type": "diplomacy",
+          "intensity": 0.7,
+          "summary": "China backs the junta regime; ASEAN constrained by consensus and non-interference norms."
+        },
+        {
+          "partner_code": "TH",
+          "partner_name": "Thailand",
+          "type": "neutral",
+          "intensity": 0.35,
+          "summary": "Border tensions from refugee flows; limited engagement on conflict resolution."
+        }
+      ]
+    },
+    {
+      "code": "YE",
+      "name": "Yemen",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Yemen's Houthi movement holds fire in the Iran war despite previous pledges to attack the Red Sea if conflict erupted. The group's caution follows devastating Israeli airstrikes last August that killed 12 high-ranking Houthi officials including the prime minister and chief of staff in Sanaa.",
+          "event_type": "military",
+          "published_at": "2026-03-11",
+          "source_url": "https://foreignpolicy.com/2026/03/11/iran-war-houthis-yemen-military-operations-calculus-ground-force-mobilization/"
+        },
+        {
+          "summary": "Houthi leader Abdul-Malik al-Houthi declares Yemen stands firmly with Iran and the Muslim populace, stressing that \"the hands are on the trigger.\" Analysts predict the Houthis' entry into the conflict is a matter of time as Iran reserves them as a strategic asset for future escalation.",
+          "event_type": "diplomatic",
+          "published_at": "2026-03-07",
+          "source_url": "https://www.aljazeera.com/news/2026/3/7/why-yemens-houthis-are-staying-out-of-israel-us-fight-with-iran-for-now"
+        },
+        {
+          "summary": "A ceasefire reached between the US and the Houthis in May 2025 led to a cessation of Red Sea shipping attacks. The group retains capabilities to disrupt shipping lanes and deploy drones and missiles targeting Israel, representing a potential wildcard in the broader Iran war escalation.",
+          "event_type": "diplomatic",
+          "published_at": "2026-03-12",
+          "source_url": "https://www.axios.com/2026/03/12/iran-war-houthis-yemen-gulf-red-sea"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "IR",
+          "partner_name": "Iran",
+          "type": "diplomacy",
+          "intensity": 0.85,
+          "summary": "Iran-aligned governing authority; reserves Houthi capabilities as strategic asset in broader conflict."
+        },
+        {
+          "partner_code": "SA",
+          "partner_name": "Saudi Arabia",
+          "type": "conflict",
+          "intensity": 0.4,
+          "summary": "Historical adversary; Saudi Arabia faces Iranian missile threats as Gulf states come under attack."
+        },
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "diplomacy",
+          "intensity": 0.5,
+          "summary": "May 2025 ceasefire holds; Houthis cautiously avoid provoking direct US-Israeli retaliation."
+        }
+      ]
+    },
+    {
+      "code": "SY",
+      "name": "Syria",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "The Syrian Army detects and confronts Hezbollah reinforcements at the Syrian-Lebanese border as the 2026 Lebanon war intensifies. Syrian forces report that Hezbollah shelled their positions, marking a new friction point as the conflict spills across borders.",
+          "event_type": "military",
+          "published_at": "2026-03-09",
+          "source_url": "https://en.wikipedia.org/wiki/2026_Lebanon_war"
+        },
+        {
+          "summary": "Israeli forces launch helicopter-borne operations into eastern Lebanon near Nabi Sheet, crossing from the Syrian side of the border with 15 helicopters. The broader regional war between Israel, Iran, and Hezbollah threatens to draw Syria deeper into the conflict.",
+          "event_type": "military",
+          "published_at": "2026-03-09",
+          "source_url": "https://en.wikipedia.org/wiki/2026_Lebanon_war"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "IL",
+          "partner_name": "Israel",
+          "type": "conflict",
+          "intensity": 0.6,
+          "summary": "Israeli forces use Syrian territory as staging area for Lebanon operations; ongoing aerial incursions."
+        },
+        {
+          "partner_code": "IR",
+          "partner_name": "Iran",
+          "type": "diplomacy",
+          "intensity": 0.65,
+          "summary": "Historical Iranian ally; Hezbollah uses Syria-Lebanon border corridor as supply and reinforcement route."
+        },
+        {
+          "partner_code": "RU",
+          "partner_name": "Russia",
+          "type": "diplomacy",
+          "intensity": 0.45,
+          "summary": "Russia maintains military presence but is increasingly stretched by Ukraine war commitments."
+        }
+      ]
+    },
+    {
+      "code": "ET",
+      "name": "Ethiopia",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Clashes erupt on January 29 in Tigray between the Tigray People's Liberation Front and Ethiopian government forces in the contested Tselemti district. Tigrayan forces capture the towns of Alamata and Korem in Southern Tigray before withdrawing in a gesture toward dialogue.",
+          "event_type": "military",
+          "published_at": "2026-02-26",
+          "source_url": "https://www.bbc.com/news/articles/cwygrnjz9wro"
+        },
+        {
+          "summary": "Ethiopia's National Election Board recognizes Tigray Democratic Solidarity as the sole eligible regional party for the June 2026 elections, effectively barring the TPLF from peaceful political contestation. TPLF leader Debretsion Gebremichael warns that war is coming to Tigray.",
+          "event_type": "political",
+          "published_at": "2026-03-02",
+          "source_url": "https://martinplaut.com/2026/03/02/ethiopias-troubled-peace-as-tigray-divides/"
+        },
+        {
+          "summary": "Tensions escalate as Ethiopia accuses Eritrea of forming an alliance with hardliners within the TPLF to wage war. Reports indicate troop buildup in northern Ethiopia, with drone strikes targeting the Tigray region and Ethiopian Airlines temporarily halting flights to Tigrayan cities.",
+          "event_type": "diplomatic",
+          "published_at": "2026-02-23",
+          "source_url": "https://www.thenewhumanitarian.org/analysis/2026/02/23/growing-threat-conflict-horn-africa"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "ER",
+          "partner_name": "Eritrea",
+          "type": "conflict",
+          "intensity": 0.65,
+          "summary": "Ethiopia accuses Eritrea of supporting Tigrayan forces and Amhara insurgents; border tensions escalating."
+        },
+        {
+          "partner_code": "SD",
+          "partner_name": "Sudan",
+          "type": "diplomacy",
+          "intensity": 0.4,
+          "summary": "Sudanese civil war spillover; SAF strikes supply convoys near the Ethiopia-Sudan border."
+        }
+      ]
+    },
+    {
+      "code": "AF",
+      "name": "Afghanistan",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Afghanistan's Taliban government launches attacks on Pakistani military bases near the disputed shared border on February 26, claiming retaliation for earlier Pakistani strikes. Within hours, Pakistan responds by bombing Afghan border provinces and the capital Kabul for the first time.",
+          "event_type": "military",
+          "published_at": "2026-03-05",
+          "source_url": "https://www.cfr.org/articles/why-are-the-afghan-taliban-and-pakistan-in-an-open-war"
+        },
+        {
+          "summary": "Taliban forces launch coordinated attacks on 28 locations across six border provinces on March 6, claiming to have killed 109 Pakistani soldiers and injured 148 others. Pakistan retaliates with airstrikes destroying several Taliban positions along the border.",
+          "event_type": "military",
+          "published_at": "2026-03-07",
+          "source_url": "https://en.wikipedia.org/wiki/2026_Afghanistan%E2%80%93Pakistan_conflict"
+        },
+        {
+          "summary": "The UN Assistance Mission in Afghanistan records at least 146 civilian casualties including 42 dead and 104 injured as of March 2. The Afghan Taliban signals willingness to negotiate with Pakistan, though analysts predict continued escalation with guerrilla assaults on both sides.",
+          "event_type": "humanitarian",
+          "published_at": "2026-03-02",
+          "source_url": "https://www.cfr.org/articles/why-are-the-afghan-taliban-and-pakistan-in-an-open-war"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "PK",
+          "partner_name": "Pakistan",
+          "type": "conflict",
+          "intensity": 0.85,
+          "summary": "Open armed conflict since late February 2026; Pakistani airstrikes on Kabul and border provinces, Taliban counterattacks."
+        },
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "neutral",
+          "intensity": 0.15,
+          "summary": "No diplomatic relations since US withdrawal; Taliban regime unrecognized by most of the international community."
+        }
+      ]
+    },
+    {
+      "code": "HT",
+      "name": "Haiti",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Armed gangs now control an estimated 90% of Port-au-Prince and expand into northern and western Haiti. The murder rate in 2025 rose by nearly 20% compared with 2024, with over 800 civilians killed in the first nine months. Gender-based violence surges with 8,000 recorded cases.",
+          "event_type": "political",
+          "published_at": "2026-02-12",
+          "source_url": "https://www.rescue.org/article/haitis-gang-violence-crisis-what-know-and-how-help"
+        },
+        {
+          "summary": "The UN Security Council warns Haiti's crisis has reached a critical phase as the political transition expires on February 7. Gangs mount coordinated attacks on police, prisons, and economic infrastructure, while government forces deploy kamikaze drones in residential areas causing mass civilian killings.",
+          "event_type": "humanitarian",
+          "published_at": "2026-01-21",
+          "source_url": "https://news.un.org/en/story/2026/01/1166806"
+        },
+        {
+          "summary": "The United Nations authorizes a new gang suppression force in October 2025 to replace the failed 2024 stabilization mission. The planned 2026 intervention faces funding challenges and warnings that civilians could be caught in the crossfire between international forces and entrenched armed groups.",
+          "event_type": "diplomatic",
+          "published_at": "2026-01-22",
+          "source_url": "https://www.chathamhouse.org/2026/01/roadmap-security-and-governance-reform-haiti"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "diplomacy",
+          "intensity": 0.4,
+          "summary": "US supports UN gang suppression force; arms trafficking routes continue through Caribbean corridors."
+        }
+      ]
+    },
+    {
+      "code": "PK",
+      "name": "Pakistan",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Pakistan conducts airstrikes on Afghan border provinces and the capital Kabul following Taliban attacks on Pakistani military bases. The strikes hit the provinces of Paktia, Paktika, Khost, Maidan Wardak, and Kunar, resulting in civilian casualties and destruction of homes and shops.",
+          "event_type": "military",
+          "published_at": "2026-03-07",
+          "source_url": "https://en.wikipedia.org/wiki/2026_Afghanistan%E2%80%93Pakistan_conflict"
+        },
+        {
+          "summary": "Relations with India remain deeply strained following the May 2025 military confrontation triggered by the Pahalgam terror attack. India's Operation Sindoor destroyed 23 terrorist camps inside Pakistan. The two nuclear-armed nations maintain minimal engagement with no formal dialogue.",
+          "event_type": "diplomatic",
+          "published_at": "2026-01-02",
+          "source_url": "https://www.aljazeera.com/news/2026/1/2/handshake-in-dhaka-can-india-and-pakistan-revive-ties-in-2026"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "AF",
+          "partner_name": "Afghanistan",
+          "type": "conflict",
+          "intensity": 0.85,
+          "summary": "Open armed conflict; Pakistan strikes Kabul for first time, Taliban retaliates across six border provinces."
+        },
+        {
+          "partner_code": "IN",
+          "partner_name": "India",
+          "type": "conflict",
+          "intensity": 0.55,
+          "summary": "Deeply adversarial post-May 2025 confrontation; India suspended the Indus Waters Treaty; minimal contact."
+        },
+        {
+          "partner_code": "CN",
+          "partner_name": "China",
+          "type": "trade",
+          "intensity": 0.65,
+          "summary": "Strategic partner through CPEC; strengthened ties as Pakistan's international standing improves."
+        }
+      ]
+    },
+    {
+      "code": "CN",
+      "name": "China",
+      "in_conflict": false,
+      "events": [
+        {
+          "summary": "China and the US hold their sixth round of economic and trade talks in France on March 14-17, building on five rounds of negotiations in 2025. Beijing signals hopes that 2026 will be a landmark year for the relationship as both sides prepare for an expected leaders' summit.",
+          "event_type": "diplomatic",
+          "published_at": "2026-03-14",
+          "source_url": "https://news.cgtn.com/news/2026-03-14/Key-outcomes-from-five-rounds-of-China-US-economic-and-trade-talks-1Lvx0ykIzug/p.html"
+        },
+        {
+          "summary": "The US-China trade truce holds with tariffs reduced to 10% following the Trump-Xi agreement in late 2025. China suspends rare earth export controls for one year as part of the deal, though the 2026 NDAA incorporates several acts targeting China including the BIOSECURE Act and FIGHT China Act.",
+          "event_type": "economic",
+          "published_at": "2026-01-20",
+          "source_url": "https://www.china-briefing.com/news/us-china-relations-in-2026-what-to-watch/"
+        },
+        {
+          "summary": "Trump threatens a 25% tariff on Iran's trade partners, potentially targeting China as Iran's largest trade partner with $2.86 billion in imports. Despite this, Trump has not extended the threat to China, seemingly unwilling to destabilize the fragile trade truce ahead of a planned April visit.",
+          "event_type": "economic",
+          "published_at": "2026-03-08",
+          "source_url": "https://www.washingtonpost.com/world/2026/03/08/china-us-relations-trump-xi-summit-wang-yi/e35047c4-1aad-11f1-aef0-0aac8e8e94db_story.html"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "trade",
+          "intensity": 0.8,
+          "summary": "Fragile trade truce at 10% tariffs; sixth round of talks underway; Trump visit to China planned for April."
+        },
+        {
+          "partner_code": "RU",
+          "partner_name": "Russia",
+          "type": "trade",
+          "intensity": 0.7,
+          "summary": "Major trade partner and diplomatic backer post-sanctions; absorbing risk of US secondary tariffs."
+        },
+        {
+          "partner_code": "IR",
+          "partner_name": "Iran",
+          "type": "trade",
+          "intensity": 0.6,
+          "summary": "Largest importer of Iranian goods; faces potential US secondary tariff threat over Iran trade."
+        }
+      ]
+    },
+    {
+      "code": "US",
+      "name": "United States",
+      "in_conflict": true,
+      "events": [
+        {
+          "summary": "Six US service members are killed in a KC-135 plane crash in western Iraq on March 13, the deadliest single US military loss since Operation Epic Fury began. Trump calls for allied nations to send warships to protect the Strait of Hormuz as Iran blocks the critical shipping lane.",
+          "event_type": "military",
+          "published_at": "2026-03-15",
+          "source_url": "https://www.cnn.com/world/live-news/iran-war-us-israel-trump-03-15-26"
+        },
+        {
+          "summary": "The US conducts bombings on military targets on Iran's Kharg Island. Trump states he is not ready to make a deal with Iran because 'the conditions aren't right yet,' while simultaneously brokering Ukraine peace talks with a June 2026 deadline. Gasoline prices rise above $4 per gallon.",
+          "event_type": "military",
+          "published_at": "2026-03-15",
+          "source_url": "https://www.reuters.com/world/middle-east/trump-calls-allies-help-secure-strait-hormuz-iran-vows-step-up-retaliation-2026-03-15/"
+        },
+        {
+          "summary": "The Iran war triggers the largest oil supply disruption in history, with global markets losing at least 10 million barrels per day. The Dow Jones falls over 400 points, Brent crude surges to $120 per barrel, and analysts warn of potential recession if the Strait of Hormuz remains blocked.",
+          "event_type": "economic",
+          "published_at": "2026-03-12",
+          "source_url": "https://www.weforum.org/stories/2026/03/the-global-price-tag-of-war-in-the-middle-east/"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "IR",
+          "partner_name": "Iran",
+          "type": "conflict",
+          "intensity": 1.0,
+          "summary": "Active war since February 28 under Operation Epic Fury; 900+ strikes in first 12 hours."
+        },
+        {
+          "partner_code": "IL",
+          "partner_name": "Israel",
+          "type": "diplomacy",
+          "intensity": 0.95,
+          "summary": "Joint military operations against Iran; primary strategic partner in Middle East conflict."
+        },
+        {
+          "partner_code": "CN",
+          "partner_name": "China",
+          "type": "trade",
+          "intensity": 0.8,
+          "summary": "Fragile trade truce; sixth round of talks underway; Trump urges China to help address Strait of Hormuz crisis."
+        },
+        {
+          "partner_code": "UA",
+          "partner_name": "Ukraine",
+          "type": "diplomacy",
+          "intensity": 0.75,
+          "summary": "Primary arms supplier; brokering trilateral peace talks in Geneva with June 2026 deadline."
+        }
+      ]
+    },
+    {
+      "code": "IN",
+      "name": "India",
+      "in_conflict": false,
+      "events": [
+        {
+          "summary": "India's economy faces growing pressure from the Iran war as higher energy prices feed inflation, weaken the rupee, and threaten growth. India, heavily reliant on Middle Eastern crude with thinner reserves, is among the most vulnerable countries to a prolonged disruption of the Strait of Hormuz.",
+          "event_type": "economic",
+          "published_at": "2026-03-12",
+          "source_url": "https://www.weforum.org/stories/2026/03/the-global-price-tag-of-war-in-the-middle-east/"
+        },
+        {
+          "summary": "Relations with Pakistan remain frozen following the May 2025 military confrontation. India suspended the Indus Waters Treaty after Operation Sindoor targeted Pakistani terrorist camps. An unexpected diplomatic handshake in Dhaka prompts cautious debate about potential dialogue in 2026.",
+          "event_type": "diplomatic",
+          "published_at": "2026-01-02",
+          "source_url": "https://www.aljazeera.com/news/2026/1/2/handshake-in-dhaka-can-india-and-pakistan-revive-ties-in-2026"
+        }
+      ],
+      "relationships": [
+        {
+          "partner_code": "PK",
+          "partner_name": "Pakistan",
+          "type": "conflict",
+          "intensity": 0.55,
+          "summary": "Deeply adversarial post-May 2025 confrontation; Indus Waters Treaty suspended; no formal dialogue."
+        },
+        {
+          "partner_code": "US",
+          "partner_name": "United States",
+          "type": "trade",
+          "intensity": 0.5,
+          "summary": "Tariff increased from 25% to 50% in August 2025 over continued purchases of Russian oil."
+        },
+        {
+          "partner_code": "RU",
+          "partner_name": "Russia",
+          "type": "trade",
+          "intensity": 0.55,
+          "summary": "Continued purchases of Russian oil despite US pressure; target of secondary tariff actions."
+        }
+      ]
+    }
+  ]
+}
