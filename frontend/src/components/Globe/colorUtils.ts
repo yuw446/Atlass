@@ -56,10 +56,18 @@ export const ARC_COLORS = {
   diplomacy: '#D4821A', // amber-orange
 } as const;
 
-/** Unrest level → pulse intensity label for debugging */
+/** Unrest level → polygon altitude */
 export const UNREST_ALTITUDE: Record<0 | 1 | 2 | 3, number> = {
   0: 0.005,
   1: 0.008,
   2: 0.015,
   3: 0.025,
 };
+
+/** Polygon fill colors: event-driven, not stability-scored */
+export const FILL_CONFLICT  = 'rgba(110, 12, 12, 0.88)';  // deep crimson — active conflict
+export const FILL_PEACEFUL  = 'rgba(8, 18, 40, 0.85)';    // dark navy — no active conflict
+export const FILL_HOVER_CONFLICT  = 'rgba(180, 30, 30, 0.92)';
+export const FILL_HOVER_PEACEFUL  = 'rgba(20, 40, 80, 0.92)';
+export const FILL_SELECTED_CONFLICT  = 'rgba(220, 50, 50, 0.95)';
+export const FILL_SELECTED_PEACEFUL  = 'rgba(30, 60, 120, 0.95)';

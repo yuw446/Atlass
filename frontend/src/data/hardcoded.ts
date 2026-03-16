@@ -1,47 +1,48 @@
 import type { CountryData, ArcData } from '../types';
 
 // Phase 1 test dataset: G20 + active conflict zones
-// Covers full stability spectrum to validate color rendering
+// flag_color: dominant hex from national flag, used for border stroke
+// in_conflict: active armed conflict as of data date
 export const HARDCODED_COUNTRIES: CountryData[] = [
-  // Stable tier (75–100) — cool blue spectrum
-  { code: 'NO', name: 'Norway',      stability_score: 94, unrest_level: 0, centroid: [60.5, 8.5],     flag: '🇳🇴' },
-  { code: 'CH', name: 'Switzerland', stability_score: 91, unrest_level: 0, centroid: [46.8, 8.2],     flag: '🇨🇭' },
-  { code: 'NZ', name: 'New Zealand', stability_score: 90, unrest_level: 0, centroid: [-40.9, 174.9],  flag: '🇳🇿' },
-  { code: 'FI', name: 'Finland',     stability_score: 89, unrest_level: 0, centroid: [61.9, 25.7],    flag: '🇫🇮' },
-  { code: 'CA', name: 'Canada',      stability_score: 85, unrest_level: 0, centroid: [56.1, -106.3],  flag: '🇨🇦' },
-  { code: 'AU', name: 'Australia',   stability_score: 83, unrest_level: 0, centroid: [-25.3, 133.8],  flag: '🇦🇺' },
-  { code: 'JP', name: 'Japan',       stability_score: 82, unrest_level: 0, centroid: [36.2, 138.2],   flag: '🇯🇵' },
-  { code: 'DE', name: 'Germany',     stability_score: 79, unrest_level: 0, centroid: [51.2, 10.4],    flag: '🇩🇪' },
-  { code: 'GB', name: 'UK',          stability_score: 76, unrest_level: 0, centroid: [55.4, -3.4],    flag: '🇬🇧' },
-  { code: 'FR', name: 'France',      stability_score: 75, unrest_level: 1, centroid: [46.2, 2.2],     flag: '🇫🇷' },
-  { code: 'US', name: 'USA',         stability_score: 72, unrest_level: 1, centroid: [37.1, -95.7],   flag: '🇺🇸' },
-  { code: 'KR', name: 'South Korea', stability_score: 74, unrest_level: 1, centroid: [35.9, 127.8],   flag: '🇰🇷' },
+  // Stable tier
+  { code: 'NO', name: 'Norway',      stability_score: 94, unrest_level: 0, in_conflict: false, flag_color: '#EF2B2D', centroid: [60.5, 8.5],     flag: '🇳🇴' },
+  { code: 'CH', name: 'Switzerland', stability_score: 91, unrest_level: 0, in_conflict: false, flag_color: '#FF0000', centroid: [46.8, 8.2],     flag: '🇨🇭' },
+  { code: 'NZ', name: 'New Zealand', stability_score: 90, unrest_level: 0, in_conflict: false, flag_color: '#00247D', centroid: [-40.9, 174.9],  flag: '🇳🇿' },
+  { code: 'FI', name: 'Finland',     stability_score: 89, unrest_level: 0, in_conflict: false, flag_color: '#003580', centroid: [61.9, 25.7],    flag: '🇫🇮' },
+  { code: 'CA', name: 'Canada',      stability_score: 85, unrest_level: 0, in_conflict: false, flag_color: '#FF0000', centroid: [56.1, -106.3],  flag: '🇨🇦' },
+  { code: 'AU', name: 'Australia',   stability_score: 83, unrest_level: 0, in_conflict: false, flag_color: '#00008B', centroid: [-25.3, 133.8],  flag: '🇦🇺' },
+  { code: 'JP', name: 'Japan',       stability_score: 82, unrest_level: 0, in_conflict: false, flag_color: '#BC002D', centroid: [36.2, 138.2],   flag: '🇯🇵' },
+  { code: 'DE', name: 'Germany',     stability_score: 79, unrest_level: 0, in_conflict: false, flag_color: '#DD0000', centroid: [51.2, 10.4],    flag: '🇩🇪' },
+  { code: 'GB', name: 'UK',          stability_score: 76, unrest_level: 0, in_conflict: false, flag_color: '#012169', centroid: [55.4, -3.4],    flag: '🇬🇧' },
+  { code: 'FR', name: 'France',      stability_score: 75, unrest_level: 1, in_conflict: false, flag_color: '#002395', centroid: [46.2, 2.2],     flag: '🇫🇷' },
+  { code: 'US', name: 'USA',         stability_score: 72, unrest_level: 1, in_conflict: false, flag_color: '#3C3B6E', centroid: [37.1, -95.7],   flag: '🇺🇸' },
+  { code: 'KR', name: 'South Korea', stability_score: 74, unrest_level: 1, in_conflict: false, flag_color: '#003478', centroid: [35.9, 127.8],   flag: '🇰🇷' },
 
-  // Mid tier (40–74) — amber spectrum
-  { code: 'IT', name: 'Italy',         stability_score: 68, unrest_level: 1, centroid: [41.9, 12.6],  flag: '🇮🇹' },
-  { code: 'CN', name: 'China',         stability_score: 62, unrest_level: 1, centroid: [35.9, 104.2], flag: '🇨🇳' },
-  { code: 'BR', name: 'Brazil',        stability_score: 60, unrest_level: 1, centroid: [-14.2, -51.9],flag: '🇧🇷' },
-  { code: 'IN', name: 'India',         stability_score: 57, unrest_level: 1, centroid: [20.6, 78.9],  flag: '🇮🇳' },
-  { code: 'ZA', name: 'South Africa',  stability_score: 52, unrest_level: 1, centroid: [-30.6, 22.9], flag: '🇿🇦' },
-  { code: 'AR', name: 'Argentina',     stability_score: 49, unrest_level: 1, centroid: [-38.4, -63.6],flag: '🇦🇷' },
-  { code: 'MX', name: 'Mexico',        stability_score: 47, unrest_level: 2, centroid: [23.6, -102.5],flag: '🇲🇽' },
-  { code: 'EG', name: 'Egypt',         stability_score: 43, unrest_level: 2, centroid: [26.8, 30.8],  flag: '🇪🇬' },
-  { code: 'TR', name: 'Turkey',        stability_score: 42, unrest_level: 2, centroid: [38.9, 35.2],  flag: '🇹🇷' },
-  { code: 'PK', name: 'Pakistan',      stability_score: 38, unrest_level: 2, centroid: [30.4, 69.3],  flag: '🇵🇰' },
-  { code: 'NG', name: 'Nigeria',       stability_score: 35, unrest_level: 2, centroid: [9.1, 8.7],    flag: '🇳🇬' },
-  { code: 'VE', name: 'Venezuela',     stability_score: 32, unrest_level: 3, centroid: [6.4, -66.6],  flag: '🇻🇪' },
+  // Mid tier
+  { code: 'IT', name: 'Italy',         stability_score: 68, unrest_level: 1, in_conflict: false, flag_color: '#009246', centroid: [41.9, 12.6],  flag: '🇮🇹' },
+  { code: 'CN', name: 'China',         stability_score: 62, unrest_level: 1, in_conflict: false, flag_color: '#DE2910', centroid: [35.9, 104.2], flag: '🇨🇳' },
+  { code: 'BR', name: 'Brazil',        stability_score: 60, unrest_level: 1, in_conflict: false, flag_color: '#009C3B', centroid: [-14.2, -51.9],flag: '🇧🇷' },
+  { code: 'IN', name: 'India',         stability_score: 57, unrest_level: 1, in_conflict: false, flag_color: '#FF9933', centroid: [20.6, 78.9],  flag: '🇮🇳' },
+  { code: 'ZA', name: 'South Africa',  stability_score: 52, unrest_level: 1, in_conflict: false, flag_color: '#007A4D', centroid: [-30.6, 22.9], flag: '🇿🇦' },
+  { code: 'AR', name: 'Argentina',     stability_score: 49, unrest_level: 1, in_conflict: false, flag_color: '#74ACDF', centroid: [-38.4, -63.6],flag: '🇦🇷' },
+  { code: 'MX', name: 'Mexico',        stability_score: 47, unrest_level: 2, in_conflict: false, flag_color: '#006847', centroid: [23.6, -102.5],flag: '🇲🇽' },
+  { code: 'EG', name: 'Egypt',         stability_score: 43, unrest_level: 2, in_conflict: false, flag_color: '#CE1126', centroid: [26.8, 30.8],  flag: '🇪🇬' },
+  { code: 'TR', name: 'Turkey',        stability_score: 42, unrest_level: 2, in_conflict: false, flag_color: '#E30A17', centroid: [38.9, 35.2],  flag: '🇹🇷' },
+  { code: 'PK', name: 'Pakistan',      stability_score: 38, unrest_level: 2, in_conflict: true,  flag_color: '#01411C', centroid: [30.4, 69.3],  flag: '🇵🇰' },
+  { code: 'NG', name: 'Nigeria',       stability_score: 35, unrest_level: 2, in_conflict: true,  flag_color: '#008751', centroid: [9.1, 8.7],    flag: '🇳🇬' },
+  { code: 'VE', name: 'Venezuela',     stability_score: 32, unrest_level: 3, in_conflict: false, flag_color: '#CF142B', centroid: [6.4, -66.6],  flag: '🇻🇪' },
 
-  // Volatile tier (0–31) — deep red spectrum
-  { code: 'RU', name: 'Russia',      stability_score: 30, unrest_level: 2, centroid: [61.5, 105.3],  flag: '🇷🇺' },
-  { code: 'IL', name: 'Israel',      stability_score: 28, unrest_level: 3, centroid: [31.0, 34.9],   flag: '🇮🇱' },
-  { code: 'ET', name: 'Ethiopia',    stability_score: 25, unrest_level: 3, centroid: [9.1, 40.5],    flag: '🇪🇹' },
-  { code: 'UA', name: 'Ukraine',     stability_score: 20, unrest_level: 3, centroid: [48.4, 31.2],   flag: '🇺🇦' },
-  { code: 'MM', name: 'Myanmar',     stability_score: 15, unrest_level: 3, centroid: [21.9, 95.9],   flag: '🇲🇲' },
-  { code: 'SD', name: 'Sudan',       stability_score: 12, unrest_level: 3, centroid: [12.9, 30.2],   flag: '🇸🇩' },
-  { code: 'HT', name: 'Haiti',       stability_score: 9,  unrest_level: 3, centroid: [18.9, -72.3],  flag: '🇭🇹' },
-  { code: 'SY', name: 'Syria',       stability_score: 8,  unrest_level: 3, centroid: [34.8, 38.9],   flag: '🇸🇾' },
-  { code: 'YE', name: 'Yemen',       stability_score: 6,  unrest_level: 3, centroid: [15.6, 48.5],   flag: '🇾🇪' },
-  { code: 'AF', name: 'Afghanistan', stability_score: 5,  unrest_level: 3, centroid: [33.9, 67.7],   flag: '🇦🇫' },
+  // Active conflict zone tier
+  { code: 'RU', name: 'Russia',      stability_score: 30, unrest_level: 2, in_conflict: true,  flag_color: '#003399', centroid: [61.5, 105.3],  flag: '🇷🇺' },
+  { code: 'IL', name: 'Israel',      stability_score: 28, unrest_level: 3, in_conflict: true,  flag_color: '#0038B8', centroid: [31.0, 34.9],   flag: '🇮🇱' },
+  { code: 'ET', name: 'Ethiopia',    stability_score: 25, unrest_level: 3, in_conflict: true,  flag_color: '#078930', centroid: [9.1, 40.5],    flag: '🇪🇹' },
+  { code: 'UA', name: 'Ukraine',     stability_score: 20, unrest_level: 3, in_conflict: true,  flag_color: '#005BBB', centroid: [48.4, 31.2],   flag: '🇺🇦' },
+  { code: 'MM', name: 'Myanmar',     stability_score: 15, unrest_level: 3, in_conflict: true,  flag_color: '#FECB00', centroid: [21.9, 95.9],   flag: '🇲🇲' },
+  { code: 'SD', name: 'Sudan',       stability_score: 12, unrest_level: 3, in_conflict: true,  flag_color: '#D21034', centroid: [12.9, 30.2],   flag: '🇸🇩' },
+  { code: 'HT', name: 'Haiti',       stability_score: 9,  unrest_level: 3, in_conflict: true,  flag_color: '#00209F', centroid: [18.9, -72.3],  flag: '🇭🇹' },
+  { code: 'SY', name: 'Syria',       stability_score: 8,  unrest_level: 3, in_conflict: true,  flag_color: '#CE1126', centroid: [34.8, 38.9],   flag: '🇸🇾' },
+  { code: 'YE', name: 'Yemen',       stability_score: 6,  unrest_level: 3, in_conflict: true,  flag_color: '#CE1126', centroid: [15.6, 48.5],   flag: '🇾🇪' },
+  { code: 'AF', name: 'Afghanistan', stability_score: 5,  unrest_level: 3, in_conflict: true,  flag_color: '#007A3D', centroid: [33.9, 67.7],   flag: '🇦🇫' },
 ];
 
 // Build lookup map for O(1) access
@@ -69,9 +70,8 @@ export const HARDCODED_ARCS: ArcData[] = [
 ];
 
 // ISO2 code mapping for known GeoJSON mismatches
-// GeoJSON ISO_A2 field uses -99 for some territories — map them to correct codes
 export const CODE_FIXES: Record<string, string> = {
-  'FR': 'FR', // France proper (GeoJSON sometimes splits territories)
+  'FR': 'FR',
   'NO': 'NO',
-  '-99': '',  // Unrecognized territory — skip
+  '-99': '',
 };

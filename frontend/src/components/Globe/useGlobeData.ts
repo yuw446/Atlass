@@ -33,9 +33,10 @@ export function useGlobeData() {
               ...f,
               properties: {
                 ...f.properties,
-                // Countries not in hardcoded set get a neutral mid score
                 stability_score: data?.stability_score ?? 50,
                 unrest_level: data?.unrest_level ?? 0,
+                in_conflict: data?.in_conflict ?? false,
+                flag_color: data?.flag_color ?? '#334466',
                 countryData: data ?? null,
               },
             } as GlobeFeature;

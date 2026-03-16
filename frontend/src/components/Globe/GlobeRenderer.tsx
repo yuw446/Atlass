@@ -2,17 +2,26 @@ import { useRef, useCallback, useMemo, useEffect } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
 import { useGlobeStore } from '../../store/globeStore';
 import {
-  stabilityToHex,
-  lightenHex,
-  stabilityToRgba,
   ARC_COLORS,
   UNREST_ALTITUDE,
+  FILL_CONFLICT,
+  FILL_PEACEFUL,
+  FILL_HOVER_CONFLICT,
+  FILL_HOVER_PEACEFUL,
+  FILL_SELECTED_CONFLICT,
+  FILL_SELECTED_PEACEFUL,
 } from './colorUtils';
 import type { GlobeFeature, ArcData } from '../../types';
 
 interface GlobeRendererProps {
   width: number;
   height: number;
+}
+
+interface ConflictMarker {
+  lat: number;
+  lng: number;
+  code: string;
 }
 
 export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
@@ -24,7 +33,6 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const selectedCountry = useGlobeStore(s => s.selectedCountry);
   const autoRotate    = useGlobeStore(s => s.autoRotate);
 
-  // Stable action references from store — safe to use inside Globe.gl callbacks
   const setHoveredCountry = useGlobeStore(s => s.setHoveredCountry);
   const selectCountry     = useGlobeStore(s => s.selectCountry);
   const setAutoRotate     = useGlobeStore(s => s.setAutoRotate);
@@ -37,7 +45,6 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     controls.autoRotateSpeed = 0.3;
   }, [autoRotate]);
 
-  // Set initial camera position once on mount
   const handleGlobeReady = useCallback(() => {
     if (!globeRef.current) return;
     globeRef.current.pointOfView({ lat: 20, lng: 15, altitude: 2.5 }, 0);
@@ -47,17 +54,15 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   }, []);
 
   // --- Polygon color functions ---
-  // These must be stable and NOT close over React state.
-  // They read from the feature's own properties (set during GeoJSON enrichment).
-
+  // Fill is binary: conflict (crimson) vs peaceful (navy)
   const polygonCapColor = useCallback((feat: object) => {
     const f = feat as GlobeFeature;
-    const score = f.properties.stability_score ?? 50;
-    const code  = f.properties.ISO_A2;
+    const code = f.properties.ISO_A2;
+    const isConflict = f.properties.in_conflict ?? false;
 
-    if (code === selectedCountry) return lightenHex(stabilityToHex(score), 0.35);
-    if (code === hoveredCountry)  return lightenHex(stabilityToHex(score), 0.2);
-    return stabilityToRgba(score, 0.88);
+    if (code === selectedCountry) return isConflict ? FILL_SELECTED_CONFLICT : FILL_SELECTED_PEACEFUL;
+    if (code === hoveredCountry)  return isConflict ? FILL_HOVER_CONFLICT    : FILL_HOVER_PEACEFUL;
+    return isConflict ? FILL_CONFLICT : FILL_PEACEFUL;
   }, [hoveredCountry, selectedCountry]);
 
   const polygonAltitude = useCallback((feat: object) => {
@@ -65,31 +70,31 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     const unrest = f.properties.unrest_level ?? 0;
     const code   = f.properties.ISO_A2;
 
-    // Selected country floats higher for emphasis
     if (code === selectedCountry) return 0.04;
-    // Hovered country slightly lifted
     if (code === hoveredCountry)  return 0.02;
-    // Unrest level drives base altitude (Phase 1 substitute for pulse shader)
     return UNREST_ALTITUDE[unrest as 0 | 1 | 2 | 3];
   }, [hoveredCountry, selectedCountry]);
 
+  // Border uses country's dominant flag color
   const polygonStrokeColor = useCallback((feat: object) => {
     const f = feat as GlobeFeature;
-    const score = f.properties.stability_score ?? 50;
-    const code  = f.properties.ISO_A2;
+    const code      = f.properties.ISO_A2;
+    const flagColor = f.properties.flag_color ?? '#334466';
 
     if (code === selectedCountry) return '#ffffff';
-    if (code === hoveredCountry)  return 'rgba(255,255,255,0.6)';
-    // Stable → cool border, volatile → warm border
-    return score > 60 ? '#1a3a5c' : score > 30 ? '#3a2a0a' : '#3a0a0a';
+    if (code === hoveredCountry)  return flagColor;
+    // Dim the flag color slightly for base state
+    return flagColor + '99'; // 60% opacity via hex alpha
   }, [hoveredCountry, selectedCountry]);
 
   const polygonLabel = useCallback((feat: object) => {
     const f = feat as GlobeFeature;
     const data = f.properties.countryData;
     const name  = data?.name ?? f.properties.ADMIN ?? f.properties.ISO_A2 ?? '';
-    const score = f.properties.stability_score ?? 50;
     const flag  = data?.flag ?? '';
+    const inConflict = f.properties.in_conflict ?? false;
+    const statusColor = inConflict ? '#e05050' : '#4a9a6a';
+    const statusLabel = inConflict ? 'ACTIVE CONFLICT' : 'NO ACTIVE CONFLICT';
     return `
       <div style="
         background: rgba(8,11,20,0.92);
@@ -100,11 +105,11 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
         color: #e8ecf4;
         pointer-events: none;
       ">
-        <div style="font-size:11px;letter-spacing:0.12em;text-transform:uppercase;opacity:0.6;margin-bottom:4px;">
+        <div style="font-size:12px;font-weight:600;margin-bottom:4px;">
           ${flag} ${name}
         </div>
-        <div style="font-size:13px;font-weight:600;color:${stabilityToHex(score)}">
-          Stability: ${score}/100
+        <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${statusColor};">
+          ${statusLabel}
         </div>
       </div>
     `;
@@ -114,7 +119,7 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const arcColor = useCallback((arc: object) => {
     const a = arc as ArcData;
     const base = ARC_COLORS[a.type];
-    return [base, base]; // [start color, end color]
+    return [base, base];
   }, []);
 
   const arcStroke = useCallback((arc: object) => {
@@ -124,14 +129,35 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const arcDashLength = useCallback(() => 0.3, []);
   const arcDashGap    = useCallback(() => 0.7, []);
 
-  // --- Event handlers ---
-  // Use Zustand setters directly — no stale closure risk since setters are stable
+  // --- Conflict markers ---
+  // Derived from enriched features so they stay in sync with GeoJSON load
+  const conflictMarkers = useMemo<ConflictMarker[]>(() => {
+    return features
+      .filter(f => f.properties.in_conflict && f.properties.countryData?.centroid)
+      .map(f => ({
+        lat: f.properties.countryData!.centroid[0],
+        lng: f.properties.countryData!.centroid[1],
+        code: f.properties.ISO_A2,
+      }));
+  }, [features]);
 
+  const buildConflictElement = useCallback((_d: object): HTMLElement => {
+    const el = document.createElement('div');
+    el.textContent = '⚔';
+    el.style.cssText = [
+      'font-size: 14px',
+      'line-height: 1',
+      'pointer-events: none',
+      'user-select: none',
+      'filter: drop-shadow(0 0 4px rgba(220, 50, 50, 0.9))',
+      'opacity: 0.9',
+    ].join(';');
+    return el;
+  }, []);
+
+  // --- Event handlers ---
   const onPolygonHover = useCallback((feat: object | null) => {
-    if (!feat) {
-      setHoveredCountry(null);
-      return;
-    }
+    if (!feat) { setHoveredCountry(null); return; }
     const f = feat as GlobeFeature;
     setHoveredCountry(f.properties.ISO_A2 ?? null);
   }, [setHoveredCountry]);
@@ -143,16 +169,9 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     selectCountry(code);
   }, [selectCountry]);
 
-  // Pause auto-rotate on any mouse interaction with globe
-  const onMouseEnter = useCallback(() => {
-    setAutoRotate(false);
-  }, [setAutoRotate]);
+  const onMouseEnter = useCallback(() => setAutoRotate(false), [setAutoRotate]);
+  const onMouseLeave = useCallback(() => setAutoRotate(true),  [setAutoRotate]);
 
-  const onMouseLeave = useCallback(() => {
-    setAutoRotate(true);
-  }, [setAutoRotate]);
-
-  // Memoize arc data — prevent Globe.gl from re-rendering arcs on every render
   const memoArcs = useMemo(() => arcs, [arcs]);
 
   return (
@@ -172,7 +191,7 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
         atmosphereColor="#1a3a5c"
         atmosphereAltitude={0.18}
 
-        // --- L1: Nation fill color ---
+        // --- L1: Nation fill — conflict vs peaceful ---
         polygonsData={features}
         polygonCapColor={polygonCapColor}
         polygonSideColor={() => '#080B14'}
@@ -181,6 +200,13 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
         polygonLabel={polygonLabel}
         onPolygonHover={onPolygonHover}
         onPolygonClick={onPolygonClick}
+
+        // --- L2: Conflict markers ---
+        htmlElementsData={conflictMarkers}
+        htmlElement={buildConflictElement}
+        htmlLat={(d: object) => (d as ConflictMarker).lat}
+        htmlLng={(d: object) => (d as ConflictMarker).lng}
+        htmlAltitude={0.01}
 
         // --- L3: Relationship arcs ---
         arcsData={memoArcs}

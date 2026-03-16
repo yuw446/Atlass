@@ -1,8 +1,10 @@
 export interface CountryData {
   code: string;           // ISO 3166-1 alpha-2
   name: string;
-  stability_score: number; // 0-100
+  stability_score: number; // 0-100, kept for supplementary context
   unrest_level: 0 | 1 | 2 | 3;
+  in_conflict: boolean;   // active armed conflict
+  flag_color: string;     // dominant hex color from national flag (for border)
   centroid: [number, number]; // [lat, lng]
   flag?: string;           // emoji flag
 }
@@ -28,6 +30,8 @@ export interface GlobeFeature {
   properties: GlobeFeatureProperties & {
     stability_score?: number;
     unrest_level?: 0 | 1 | 2 | 3;
+    in_conflict?: boolean;
+    flag_color?: string;
     countryData?: CountryData;
   };
   geometry: {
@@ -36,12 +40,16 @@ export interface GlobeFeature {
   };
 }
 
+export interface EventCard {
+  summary: string;
+  image_url?: string;
+}
+
 export interface DigestData {
   country_code: string;
   country_name: string;
-  stability_score: number;
-  unrest_level: 0 | 1 | 2 | 3;
-  digest_text: string;
-  top_events: { headline: string; url: string }[];
+  in_conflict: boolean;
+  events: EventCard[];
   updated_at: string;
+  cached: boolean;
 }
