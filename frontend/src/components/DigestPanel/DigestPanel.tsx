@@ -173,7 +173,14 @@ export default function DigestPanel() {
 
   const country    = selectedCountry ? countryMap.get(selectedCountry) : null;
   const inConflict = digestData?.in_conflict ?? country?.in_conflict ?? false;
-  const events     = digestData?.events ?? [];
+
+  // Sort newest first; events without a date fall to the bottom
+  const events = (digestData?.events ?? []).slice().sort((a, b) => {
+    if (!a.published_at && !b.published_at) return 0;
+    if (!a.published_at) return 1;
+    if (!b.published_at) return -1;
+    return new Date(b.published_at).getTime() - new Date(a.published_at).getTime();
+  });
 
   if (!visible) return null;
 
@@ -301,6 +308,7 @@ export default function DigestPanel() {
                     href={event.source_url}
                     target="_blank"
                     rel="noopener noreferrer"
+                    title={event.source_url}
                     style={{
                       fontSize: 9,
                       fontFamily: 'monospace',
@@ -315,7 +323,7 @@ export default function DigestPanel() {
                     onMouseEnter={e => { (e.target as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.55)'; }}
                     onMouseLeave={e => { (e.target as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.28)'; }}
                   >
-                    ↗ {event.source_url.replace(/^https?:\/\//, '').split('/')[0]}
+                    ↗ {event.source_url.replace(/^https?:\/\//, '')}
                   </a>
                 )}
               </div>
