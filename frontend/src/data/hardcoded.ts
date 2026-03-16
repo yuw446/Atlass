@@ -32,9 +32,12 @@ export const HARDCODED_COUNTRIES: CountryData[] = [
   { code: 'NG', name: 'Nigeria',       stability_score: 35, unrest_level: 2, in_conflict: true,  flag_color: '#008751', centroid: [9.1, 8.7],    flag: '🇳🇬' },
   { code: 'VE', name: 'Venezuela',     stability_score: 32, unrest_level: 3, in_conflict: false, flag_color: '#CF142B', centroid: [6.4, -66.6],  flag: '🇻🇪' },
 
+  { code: 'AE', name: 'UAE',          stability_score: 58, unrest_level: 1, in_conflict: false, flag_color: '#00732F', centroid: [23.4, 53.8],   flag: '🇦🇪' },
+
   // Active conflict zone tier
-  { code: 'IR', name: 'Iran',        stability_score: 22, unrest_level: 3, in_conflict: true,  flag_color: '#239F40', centroid: [32.4, 53.7],   flag: '🇮🇷' },
-  { code: 'LB', name: 'Lebanon',     stability_score: 18, unrest_level: 3, in_conflict: true,  flag_color: '#00A651', centroid: [33.9, 35.5],   flag: '🇱🇧' },
+  { code: 'IR', name: 'Iran',         stability_score: 22, unrest_level: 3, in_conflict: true,  flag_color: '#239F40', centroid: [32.4, 53.7],   flag: '🇮🇷' },
+  { code: 'LB', name: 'Lebanon',      stability_score: 18, unrest_level: 3, in_conflict: true,  flag_color: '#00A651', centroid: [33.9, 35.5],   flag: '🇱🇧' },
+  { code: 'SA', name: 'Saudi Arabia', stability_score: 26, unrest_level: 3, in_conflict: true,  flag_color: '#006C35', centroid: [23.9, 45.1],   flag: '🇸🇦' },
   { code: 'RU', name: 'Russia',      stability_score: 30, unrest_level: 2, in_conflict: true,  flag_color: '#003399', centroid: [61.5, 105.3],  flag: '🇷🇺' },
   { code: 'IL', name: 'Israel',      stability_score: 28, unrest_level: 3, in_conflict: true,  flag_color: '#0038B8', centroid: [31.0, 34.9],   flag: '🇮🇱' },
   { code: 'ET', name: 'Ethiopia',    stability_score: 25, unrest_level: 3, in_conflict: true,  flag_color: '#078930', centroid: [9.1, 40.5],    flag: '🇪🇹' },
@@ -67,6 +70,8 @@ export const HARDCODED_ARCS: ArcData[] = [
   { startLat: 31.0, startLng: 34.9,   endLat: 33.9,  endLng: 35.5,   type: 'conflict', intensity: 0.95,label: 'Israel–Lebanon' },
   { startLat: 33.9, startLng: 67.7,   endLat: 30.4,  endLng: 69.3,   type: 'conflict', intensity: 0.85,label: 'Afghanistan–Pakistan' },
   { startLat: 12.9, startLng: 30.2,   endLat: 9.1,   endLng: 40.5,   type: 'conflict', intensity: 0.6, label: 'Sudan–Ethiopia' },
+  { startLat: 32.4, startLng: 53.7,   endLat: 23.9,  endLng: 45.1,   type: 'conflict', intensity: 0.9, label: 'Iran–Saudi Arabia' },
+  { startLat: 32.4, startLng: 53.7,   endLat: 23.4,  endLng: 53.8,   type: 'conflict', intensity: 0.75,label: 'Iran–UAE' },
 
   // Diplomacy arcs (amber)
   { startLat: 37.1, startLng: -95.7,  endLat: 48.4,  endLng: 31.2,   type: 'diplomacy',intensity: 0.75,label: 'US–Ukraine Peace Talks' },
