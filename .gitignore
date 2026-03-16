@@ -39,6 +39,7 @@ pnpm-debug.log*
 backend/data/inbox/*.json
 backend/data/processed/*.json
 backend/data/failed/*.json
+backend/data/normalized/*.json
 
 # TypeScript build info
 *.tsbuildinfo

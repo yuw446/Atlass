@@ -1,11 +1,19 @@
 /**
  * File ingestion pipeline for Perplexity data packages.
  *
+ * Storage strategy:
+ *   - Disk (data/normalized/{ISO2}.json) is the primary persistent store.
+ *     Always written. Success is determined by disk write success.
+ *   - Redis is a cache layer on top of disk. Written when available;
+ *     silently skipped when Redis is down. The API can hydrate Redis
+ *     from disk on cache-miss.
+ *
  * Flow per file:
  *   inbox/{file}.json
  *     → parse JSON
  *     → validate + normalise (fuzzy matching, rescue mode)
- *     → write per-country data to Redis
+ *     → write per-country data to disk (primary)
+ *     → write per-country data to Redis (cache, best-effort)
  *     → move to processed/ (success) or failed/ (failure)
  *     → on failure: write {file}.error.json with detailed report
  */
@@ -18,10 +26,11 @@ import { redis } from '../redis.js';
 import type { NormalizedCountry, NormalizedPackage } from './schema.js';
 
 const __dirname = fileURLToPath(new URL('.', import.meta.url));
-const DATA_ROOT  = join(__dirname, '..', '..', '..', '..', 'data');
-const INBOX_DIR  = join(DATA_ROOT, 'inbox');
-const PROCESSED_DIR = join(DATA_ROOT, 'processed');
-const FAILED_DIR    = join(DATA_ROOT, 'failed');
+const DATA_ROOT  = join(__dirname, '..', '..', '..', 'data');
+const INBOX_DIR      = join(DATA_ROOT, 'inbox');
+const PROCESSED_DIR  = join(DATA_ROOT, 'processed');
+const FAILED_DIR     = join(DATA_ROOT, 'failed');
+const NORMALIZED_DIR = join(DATA_ROOT, 'normalized');
 
 // Redis TTLs
 const COUNTRY_TTL_SECONDS = 24 * 60 * 60;  // 24 hours
@@ -52,7 +61,37 @@ export interface IngestRunResult {
 }
 
 // ---------------------------------------------------------------------------
-// Redis writes
+// Disk writes (primary)
+// ---------------------------------------------------------------------------
+
+async function writeCountryToDisk(country: NormalizedCountry): Promise<void> {
+  const path = join(NORMALIZED_DIR, `${country.code}.json`);
+  await writeFile(path, JSON.stringify(country, null, 2));
+}
+
+export async function readCountryFromDisk(code: string): Promise<NormalizedCountry | null> {
+  try {
+    const path = join(NORMALIZED_DIR, `${code}.json`);
+    const text = await readFile(path, 'utf-8');
+    return JSON.parse(text) as NormalizedCountry;
+  } catch {
+    return null;
+  }
+}
+
+export async function listNormalizedCountries(): Promise<string[]> {
+  try {
+    const files = await readdir(NORMALIZED_DIR);
+    return files
+      .filter(f => f.endsWith('.json') && f !== '.gitkeep')
+      .map(f => f.replace('.json', ''));
+  } catch {
+    return [];
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Redis writes (cache layer — best-effort)
 // ---------------------------------------------------------------------------
 
 async function writeCountryToRedis(country: NormalizedCountry): Promise<void> {
@@ -141,19 +180,33 @@ export async function ingestFile(filePath: string): Promise<FileResult> {
 
   const pkg: NormalizedPackage = result.package;
 
-  // Write to Redis (individual country writes — partial failure is tolerated)
+  // Write to disk (primary) + Redis (cache, best-effort)
   const written: string[] = [];
-  const redisErrors: string[] = [];
+  const diskErrors: string[] = [];
+  const redisWarnings: string[] = [];
+
   for (const country of pkg.countries) {
+    // Disk write is required for success
     try {
-      await writeCountryToRedis(country);
+      await writeCountryToDisk(country);
       written.push(country.code);
     } catch (err) {
-      redisErrors.push(`Redis write failed for ${country.code}: ${(err as Error).message}`);
+      diskErrors.push(`Disk write failed for ${country.code}: ${(err as Error).message}`);
+      continue;
+    }
+    // Redis write is best-effort
+    try {
+      await writeCountryToRedis(country);
+    } catch {
+      redisWarnings.push(`Redis unavailable for ${country.code} — disk-only`);
     }
   }
 
-  const allErrors = [...result.errors, ...redisErrors];
+  if (redisWarnings.length > 0) {
+    result.warnings.push(`Redis offline: ${written.length} countries written to disk only`);
+  }
+
+  const allErrors = [...result.errors, ...diskErrors];
   const success   = written.length > 0;
 
   await archiveFile(filePath, success, allErrors.length ? allErrors : undefined, result.warnings);

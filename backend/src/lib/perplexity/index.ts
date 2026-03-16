@@ -1,5 +1,5 @@
 export { validatePackage } from './validate.js';
-export { scanInbox, ingestFile, getInboxStatus } from './ingest.js';
+export { scanInbox, ingestFile, getInboxStatus, readCountryFromDisk, listNormalizedCountries } from './ingest.js';
 export { resolveCountryCode, resolveEventType, resolveRelationshipType, resolveIntensity, resolveBoolean } from './fuzzy.js';
 export type {
   NormalizedPackage,
