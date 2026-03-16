@@ -56,7 +56,11 @@ function formatEventDate(iso?: string): string | null {
   const d = new Date(iso);
   if (isNaN(d.getTime())) return null;
   const pad = (n: number) => String(n).padStart(2, '0');
-  return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}  ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+  const dateStr = `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  // Suppress time when it is exactly midnight — indicates a date-only source value
+  // normalised to T00:00:00Z by the ingestion pipeline.
+  const hasTime = d.getUTCHours() !== 0 || d.getUTCMinutes() !== 0;
+  return hasTime ? `${dateStr}  ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC` : dateStr;
 }
 
 const STATUS_DISPLAY: Record<string, { label: string; color: string; bg: string; border: string }> = {
