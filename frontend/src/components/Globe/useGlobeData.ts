@@ -16,8 +16,11 @@ interface GeoJSON {
   features: GlobeFeature[];
 }
 
-// Densify polygon edges longer than MAX_EDGE_DEG degrees to prevent Globe.gl
-// tessellation artifacts on large/high-latitude polygons (e.g. Greenland, Russia).
+// ---------------------------------------------------------------------------
+// Edge densification
+// ---------------------------------------------------------------------------
+// Add intermediate points on edges longer than MAX_EDGE_DEG degrees so Globe.gl
+// tessellator doesn't draw straight chords through the sphere interior.
 const MAX_EDGE_DEG = 3;
 
 function densifyRing(ring: number[][]): number[][] {
