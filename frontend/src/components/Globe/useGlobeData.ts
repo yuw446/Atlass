@@ -3,6 +3,14 @@ import { useGlobeStore } from '../../store/globeStore';
 import { HARDCODED_COUNTRIES, HARDCODED_ARCS, COUNTRY_MAP } from '../../data/hardcoded';
 import type { GlobeFeature } from '../../types';
 
+// Force full page reload when hardcoded data changes during HMR
+// so the GeoJSON enrichment useEffect always runs with fresh data
+if (import.meta.hot) {
+  import.meta.hot.accept('../../data/hardcoded', () => {
+    import.meta.hot!.invalidate();
+  });
+}
+
 interface GeoJSON {
   type: 'FeatureCollection';
   features: GlobeFeature[];
