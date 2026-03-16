@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/datasets/geo-countries/master/data/countries.geojson\" -o /Users/faye/Documents/GitHub/Atlass/Atlass/frontend/public/data/countries.geojson)",
+      "Bash(curl -s \"https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson\" -o /Users/faye/Documents/GitHub/Atlass/Atlass/frontend/public/data/countries.geojson)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/nvkelso/natural-earth-vector/master/geojson/ne_110m_admin_0_countries.geojson\" -o /Users/faye/Documents/GitHub/Atlass/Atlass/frontend/public/data/countries.geojson)",
+      "Bash(python3 -c \"import json; d=json.load\\(open\\(''/Users/faye/Documents/GitHub/Atlass/Atlass/frontend/public/data/countries.geojson''\\)\\); f=d[''features''][0]; print\\(list\\(f[''properties''].keys\\(\\)\\)[:15]\\)\")"
+    ]
+  }
+}

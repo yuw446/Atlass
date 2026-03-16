@@ -1,0 +1,713 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap');
+
+  :root {
+    --atlas-mono: 'Space Mono', monospace;
+    --atlas-serif: 'Cormorant Garamond', serif;
+    --atlas-accent: #C04828;
+    --atlas-accent2: #3B6D11;
+    --atlas-dim: rgba(128,128,128,0.12);
+  }
+
+  .atlas-wrap {
+    font-family: var(--atlas-mono);
+    font-size: 11px;
+    line-height: 1.7;
+    color: var(--color-text-primary);
+    padding: 0 0 2rem;
+  }
+
+  .atlas-hero {
+    border-bottom: 0.5px solid var(--color-border-secondary);
+    padding: 1.5rem 0 1.25rem;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .atlas-kicker {
+    font-family: var(--atlas-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    color: var(--atlas-accent);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+
+  .atlas-title {
+    font-family: var(--atlas-serif);
+    font-size: 52px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--color-text-primary);
+    margin: 0;
+  }
+
+  .atlas-subtitle {
+    font-family: var(--atlas-serif);
+    font-size: 15px;
+    font-style: italic;
+    color: var(--color-text-secondary);
+    margin-top: 0.5rem;
+  }
+
+  .atlas-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .atlas-tag {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+  }
+
+  .atlas-section {
+    margin-bottom: 2rem;
+  }
+
+  .atlas-section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1rem;
+    border-top: 0.5px solid var(--color-border-tertiary);
+    padding-top: 1rem;
+  }
+
+  .atlas-section-num {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--atlas-accent);
+    min-width: 24px;
+  }
+
+  .atlas-section-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--color-text-secondary);
+  }
+
+  .atlas-body {
+    font-family: var(--atlas-serif);
+    font-size: 15px;
+    line-height: 1.75;
+    color: var(--color-text-secondary);
+    margin-bottom: 1rem;
+  }
+
+  .atlas-body strong {
+    color: var(--color-text-primary);
+    font-weight: 600;
+  }
+
+  .atlas-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .atlas-grid-3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 1rem;
+  }
+
+  .atlas-card {
+    background: var(--color-background-secondary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 8px;
+    padding: 14px 16px;
+  }
+
+  .atlas-card-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    margin-bottom: 6px;
+  }
+
+  .atlas-card-value {
+    font-family: var(--atlas-serif);
+    font-size: 14px;
+    color: var(--color-text-primary);
+    line-height: 1.5;
+  }
+
+  .atlas-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-bottom: 1rem;
+  }
+
+  .atlas-table th {
+    font-size: 9px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-text-tertiary);
+    font-weight: 700;
+    text-align: left;
+    padding: 6px 12px 6px 0;
+    border-bottom: 0.5px solid var(--color-border-secondary);
+  }
+
+  .atlas-table td {
+    padding: 9px 12px 9px 0;
+    border-bottom: 0.5px solid var(--color-border-tertiary);
+    color: var(--color-text-secondary);
+    vertical-align: top;
+  }
+
+  .atlas-table td:first-child {
+    color: var(--color-text-primary);
+    font-weight: 700;
+  }
+
+  .atlas-pill {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-right: 4px;
+    margin-bottom: 4px;
+  }
+
+  .pill-red { background: #FCEBEB; color: #791F1F; }
+  .pill-green { background: #EAF3DE; color: #27500A; }
+  .pill-blue { background: #E6F1FB; color: #0C447C; }
+  .pill-amber { background: #FAEEDA; color: #633806; }
+  .pill-gray { background: #F1EFE8; color: #444441; }
+
+  @media (prefers-color-scheme: dark) {
+    .pill-red { background: #501313; color: #F7C1C1; }
+    .pill-green { background: #173404; color: #C0DD97; }
+    .pill-blue { background: #042C53; color: #B5D4F4; }
+    .pill-amber { background: #412402; color: #FAC775; }
+    .pill-gray { background: #2C2C2A; color: #D3D1C7; }
+  }
+
+  .atlas-phase {
+    display: grid;
+    grid-template-columns: 80px 1fr;
+    gap: 0;
+    margin-bottom: 0;
+  }
+
+  .atlas-phase-row {
+    display: contents;
+  }
+
+  .atlas-phase-num {
+    padding: 14px 0;
+    border-top: 0.5px solid var(--color-border-tertiary);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--atlas-accent);
+    text-transform: uppercase;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 16px;
+  }
+
+  .atlas-phase-content {
+    padding: 14px 0 14px 16px;
+    border-top: 0.5px solid var(--color-border-tertiary);
+    border-left: 0.5px solid var(--color-border-tertiary);
+  }
+
+  .atlas-phase-title {
+    font-family: var(--atlas-serif);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-text-primary);
+    margin-bottom: 4px;
+  }
+
+  .atlas-phase-desc {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    line-height: 1.6;
+  }
+
+  .atlas-phase-time {
+    font-size: 9px;
+    color: var(--color-text-tertiary);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 6px;
+  }
+
+  .atlas-divider {
+    height: 0.5px;
+    background: var(--color-border-tertiary);
+    margin: 1.5rem 0;
+  }
+
+  .atlas-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1px;
+    background: var(--color-border-tertiary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 8px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .atlas-split-col {
+    background: var(--color-background-primary);
+    padding: 14px 16px;
+  }
+
+  .atlas-split-col-head {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .atlas-split-col-head.perp { color: #3B6D11; }
+  .atlas-split-col-head.claude { color: #C04828; }
+
+  .atlas-bullet {
+    font-size: 11px;
+    color: var(--color-text-secondary);
+    margin-bottom: 6px;
+    padding-left: 14px;
+    position: relative;
+    line-height: 1.5;
+  }
+
+  .atlas-bullet::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--color-text-tertiary);
+  }
+
+  .atlas-layer-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin-bottom: 1px;
+  }
+
+  .atlas-layer-num {
+    width: 32px;
+    flex-shrink: 0;
+    background: var(--color-background-secondary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--color-text-tertiary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-radius: 4px 0 0 4px;
+  }
+
+  .atlas-layer-body {
+    flex: 1;
+    background: var(--color-background-primary);
+    border: 0.5px solid var(--color-border-tertiary);
+    border-left: none;
+    border-radius: 0 4px 4px 0;
+    padding: 8px 12px;
+  }
+
+  .atlas-layer-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--color-text-primary);
+  }
+
+  .atlas-layer-desc {
+    font-size: 10px;
+    color: var(--color-text-tertiary);
+    margin-top: 2px;
+  }
+
+  .atlas-quote {
+    border-left: 2px solid var(--atlas-accent);
+    padding: 8px 0 8px 16px;
+    margin: 1rem 0;
+  }
+
+  .atlas-quote-text {
+    font-family: var(--atlas-serif);
+    font-size: 16px;
+    font-style: italic;
+    color: var(--color-text-primary);
+    line-height: 1.6;
+  }
+</style>
+
+<div class="atlas-wrap">
+
+  <div class="atlas-hero">
+    <div>
+      <div class="atlas-kicker">Project Brief · v0.1 · Mar 2026</div>
+      <h1 class="atlas-title">ATLAS</h1>
+      <div class="atlas-subtitle">A Living Globe of Global Tensions</div>
+    </div>
+    <div class="atlas-meta">
+      <span class="atlas-tag">Creative &amp; Data Viz</span>
+      <span class="atlas-tag">Web · Real-time</span>
+      <span class="atlas-tag">Perplexity + Claude</span>
+    </div>
+  </div>
+
+  <!-- Vision -->
+  <div class="atlas-section">
+    <div class="atlas-section-header">
+      <span class="atlas-section-num">01</span>
+      <span class="atlas-section-title">Vision &amp; Concept</span>
+    </div>
+    <div class="atlas-quote">
+      <div class="atlas-quote-text">"A traditional operating system takes instructions. ATLAS takes the chaos of global news and renders it as something you can feel — a living strategy game you can't pause."</div>
+    </div>
+    <p class="atlas-body">
+      ATLAS is a real-time geopolitical visualization that renders nation-state relationships as a living, interactive 3D globe — borrowing the visual language of Civilization to make abstract international dynamics legible at a glance. Every country on the globe is alive: its color, pulse, and border glow encode what's happening inside and between nations <strong>right now.</strong>
+    </p>
+    <p class="atlas-body">
+      The globe operates on two simultaneous scales. At the <strong>macro level</strong>, arcs between nations encode trade flows, diplomatic relationships, sanctions, and military alliances — their thickness and color shift as real-world events unfold. At the <strong>micro level</strong>, each nation carries an internal stability index derived from protest activity, civil unrest, and social friction — nations under pressure flicker and fracture visually, reflecting the Civ mechanic of internal instability undermining external power projection.
+    </p>
+    <p class="atlas-body">
+      Click any country to open a <strong>narrative digest panel</strong> — a Claude-generated editorial summary that reads like a foreign correspondent's briefing. Not a list of facts: a story about what this country is experiencing, why it matters, and how it connects to its neighbors.
+    </p>
+  </div>
+
+  <!-- Core mechanics -->
+  <div class="atlas-section">
+    <div class="atlas-section-header">
+      <span class="atlas-section-num">02</span>
+      <span class="atlas-section-title">Globe Visual System</span>
+    </div>
+    <p class="atlas-body">Five simultaneous visual layers encode distinct data dimensions without cluttering the interface:</p>
+
+    <div style="margin-bottom: 1rem;">
+      <div class="atlas-layer-row">
+        <div class="atlas-layer-num">L1</div>
+        <div class="atlas-layer-body">
+          <div class="atlas-layer-title">Nation fill color</div>
+          <div class="atlas-layer-desc">Stability hue — cool blue (stable) shifting through amber to deep red (volatile). Derived from protest index + governance score.</div>
+        </div>
+      </div>
+      <div class="atlas-layer-row">
+        <div class="atlas-layer-num">L2</div>
+        <div class="atlas-layer-body">
+          <div class="atlas-layer-title">Border glow</div>
+          <div class="atlas-layer-desc">Alliance strength between neighboring nations. Bright = strong treaty/alliance. Dim = neutral. Pulsing red = active border dispute.</div>
+        </div>
+      </div>
+      <div class="atlas-layer-row">
+        <div class="atlas-layer-num">L3</div>
+        <div class="atlas-layer-body">
+          <div class="atlas-layer-title">Relationship arcs</div>
+          <div class="atlas-layer-desc">Curved arcs between countries — color-coded by type (trade = teal, conflict = red, diplomacy = amber), thickness = relationship intensity.</div>
+        </div>
+      </div>
+      <div class="atlas-layer-row">
+        <div class="atlas-layer-num">L4</div>
+        <div class="atlas-layer-body">
+          <div class="atlas-layer-title">Internal pulse animation</div>
+          <div class="atlas-layer-desc">Subtle shimmer within national borders when civil unrest is high. A country tearing apart from within while maintaining a diplomatic face outward.</div>
+        </div>
+      </div>
+      <div class="atlas-layer-row">
+        <div class="atlas-layer-num">L5</div>
+        <div class="atlas-layer-body">
+          <div class="atlas-layer-title">Click → Digest panel</div>
+          <div class="atlas-layer-desc">Slides in from the right. Claude-generated 4–5 sentence narrative briefing + 3 top news source links. Refreshes on each click.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tech stack -->
+  <div class="atlas-section">
+    <div class="atlas-section-header">
+      <span class="atlas-section-num">03</span>
+      <span class="atlas-section-title">Tech Stack</span>
+    </div>
+    <table class="atlas-table">
+      <thead>
+        <tr>
+          <th style="width:28%">Layer</th>
+          <th style="width:30%">Tool</th>
+          <th>Purpose</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>3D Globe</td>
+          <td>Globe.gl / Three.js</td>
+          <td>WebGL-rendered interactive globe with country meshes, arc animations, and label overlays</td>
+        </tr>
+        <tr>
+          <td>Country data</td>
+          <td>GeoJSON + REST Countries API</td>
+          <td>Borders, centroids, country metadata, flags</td>
+        </tr>
+        <tr>
+          <td>Live events</td>
+          <td>GDELT Project API</td>
+          <td>Free, massive database of global news events — codes tone, actors, locations in real time</td>
+        </tr>
+        <tr>
+          <td>Relationship scoring</td>
+          <td>Perplexity Computer (agent)</td>
+          <td>Scheduled multi-step research runs to score bilateral relationships and detect unrest events</td>
+        </tr>
+        <tr>
+          <td>Narrative digest</td>
+          <td>Claude API</td>
+          <td>On-demand country briefings — raw data in, editorial narrative out</td>
+        </tr>
+        <tr>
+          <td>Frontend</td>
+          <td>React + Tailwind</td>
+          <td>Digest panel, UI controls, data state management</td>
+        </tr>
+        <tr>
+          <td>Backend / caching</td>
+          <td>Node.js + Redis</td>
+          <td>Cache relationship scores, serve fresh GDELT data without hammering APIs</td>
+        </tr>
+        <tr>
+          <td>Hosting</td>
+          <td>Vercel + Railway</td>
+          <td>Frontend on Vercel, backend/Redis on Railway</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="atlas-grid-2" style="margin-top:0.5rem">
+      <div class="atlas-card">
+        <div class="atlas-card-label">Primary API — Events</div>
+        <div class="atlas-card-value">GDELT Project<br><span style="font-size:11px;color:var(--color-text-tertiary)">Free · updates every 15min · covers 250+ countries · 100+ event codes</span></div>
+      </div>
+      <div class="atlas-card">
+        <div class="atlas-card-label">Supplemental APIs</div>
+        <div class="atlas-card-value">ACLED (conflict), UNHCR (displacement), UN Comtrade (trade flows), SIPRI (arms)<br><span style="font-size:11px;color:var(--color-text-tertiary)">Free tiers available</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Perplexity + Claude split -->
+  <div class="atlas-section">
+    <div class="atlas-section-header">
+      <span class="atlas-section-num">04</span>
+      <span class="atlas-section-title">Perplexity + Claude Integration</span>
+    </div>
+    <p class="atlas-body">The two services handle fundamentally different cognitive tasks — Perplexity Computer as the <strong>autonomous researcher</strong> running in the background, Claude as the <strong>narrative voice</strong> responding on demand.</p>
+
+    <div class="atlas-split">
+      <div class="atlas-split-col">
+        <div class="atlas-split-col-head perp">Perplexity Computer</div>
+        <div class="atlas-bullet">Runs every 4–6 hours as a scheduled agentic task</div>
+        <div class="atlas-bullet">Scans global news sources across 50+ major bilateral relationships</div>
+        <div class="atlas-bullet">Scores each relationship: <em>alliance / neutral / tense / hostile</em></div>
+        <div class="atlas-bullet">Detects active protest / unrest events per country and estimates intensity</div>
+        <div class="atlas-bullet">Identifies the 3 most significant news events per country</div>
+        <div class="atlas-bullet">Outputs structured JSON stored in Redis cache for globe consumption</div>
+        <div class="atlas-bullet">Uses bonus credit period to run richer, more frequent research passes</div>
+      </div>
+      <div class="atlas-split-col">
+        <div class="atlas-split-col-head claude">Claude</div>
+        <div class="atlas-bullet">Triggered on-demand when user clicks a country</div>
+        <div class="atlas-bullet">Receives: country name, current scores, top 3 events, neighboring relationships</div>
+        <div class="atlas-bullet">Generates 4–5 sentence narrative digest in a consistent editorial voice</div>
+        <div class="atlas-bullet">Frames the story — not a list of facts but a coherent geopolitical narrative</div>
+        <div class="atlas-bullet">Surfaces the <em>why</em>: how internal pressures connect to external behavior</div>
+        <div class="atlas-bullet">Caches digest for 2 hours so repeat clicks are instant</div>
+        <div class="atlas-bullet">Claude's increased usage limits enable richer, more detailed briefings</div>
+      </div>
+    </div>
+
+    <div class="atlas-card" style="margin-top:0.5rem">
+      <div class="atlas-card-label">Example data flow — user clicks Brazil</div>
+      <div class="atlas-card-value" style="font-size:12px; font-family: var(--atlas-mono); line-height:1.8; color:var(--color-text-secondary)">
+        Click → fetch Redis cache for BR → pass to Claude:<br>
+        <span style="color:var(--color-text-tertiary)">"Brazil: stability=62, unrest=high (Belém protests), top relationships: Argentina (tense), US (neutral), China (strong trade). Recent events: [3 GDELT entries]"</span><br>
+        → Claude outputs: <span style="color:var(--color-text-tertiary)">"Brazil is turning inward. With the Amazon summit collapsing and Belém in its third week of protests over land rights, Lula's government is caught between its international climate commitments and domestic pressure from agribusiness interests — a tension that's quietly cooling its relationship with Buenos Aires while Beijing watches patiently from the sidelines."</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Data schema -->
+  <div class="atlas-section">
+    <div class="atlas-section-header">
+      <span class="atlas-section-num">05</span>
+      <span class="atlas-section-title">Data Schema</span>
+    </div>
+    <table class="atlas-table">
+      <thead>
+        <tr><th>Field</th><th>Type</th><th>Description</th><th>Source</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>country_code</td>
+          <td><span class="atlas-pill pill-gray">ISO-2</span></td>
+          <td>Two-letter country code</td>
+          <td>REST Countries</td>
+        </tr>
+        <tr>
+          <td>stability_score</td>
+          <td><span class="atlas-pill pill-blue">0–100</span></td>
+          <td>Internal stability index, drives fill color</td>
+          <td>GDELT + Perplexity</td>
+        </tr>
+        <tr>
+          <td>unrest_level</td>
+          <td><span class="atlas-pill pill-red">0–3</span></td>
+          <td>Civil unrest intensity, drives pulse animation</td>
+          <td>ACLED + Perplexity</td>
+        </tr>
+        <tr>
+          <td>relationships[ ]</td>
+          <td><span class="atlas-pill pill-amber">array</span></td>
+          <td>Array of bilateral scores with partner codes + type</td>
+          <td>Perplexity Computer</td>
+        </tr>
+        <tr>
+          <td>top_events[ ]</td>
+          <td><span class="atlas-pill pill-amber">array</span></td>
+          <td>3 most significant recent events with headline + date</td>
+          <td>GDELT / Perplexity</td>
+        </tr>
+        <tr>
+          <td>digest_text</td>
+          <td><span class="atlas-pill pill-green">string</span></td>
+          <td>Claude-generated narrative, cached 2h</td>
+          <td>Claude API</td>
+        </tr>
+        <tr>
+          <td>updated_at</td>
+          <td><span class="atlas-pill pill-gray">timestamp</span></td>
+          <td>Last Perplexity research run for this country</td>
+          <td>System</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Build phases -->
+  <div class="atlas-section">
+    <div class="atlas-section-header">
+      <span class="atlas-section-num">06</span>
+      <span class="atlas-section-title">Build Roadmap</span>
+    </div>
+    <div class="atlas-phase">
+      <div class="atlas-phase-row">
+        <div class="atlas-phase-num">Phase 1</div>
+        <div class="atlas-phase-content">
+          <div class="atlas-phase-title">The Globe</div>
+          <div class="atlas-phase-desc">Spinning 3D globe with country borders, hover states, and color coding from hardcoded stability scores. Get the visual feel and interaction right before any real data. Globe.gl makes this surprisingly fast — the goal here is the aesthetic, not the data.</div>
+          <div class="atlas-phase-time">Est. ~1 week</div>
+        </div>
+      </div>
+      <div class="atlas-phase-row">
+        <div class="atlas-phase-num">Phase 2</div>
+        <div class="atlas-phase-content">
+          <div class="atlas-phase-title">Data Pipeline</div>
+          <div class="atlas-phase-desc">Wire up GDELT for live event ingestion. Build the Perplexity Computer agent prompt that outputs structured relationship JSON every 4–6 hours. Set up Redis caching layer. Replace hardcoded scores with live data.</div>
+          <div class="atlas-phase-time">Est. ~1 week</div>
+        </div>
+      </div>
+      <div class="atlas-phase-row">
+        <div class="atlas-phase-num">Phase 3</div>
+        <div class="atlas-phase-content">
+          <div class="atlas-phase-title">Claude Digest Panel</div>
+          <div class="atlas-phase-desc">Click handler → country context → Claude API → animated slide-in panel. Define the editorial voice system prompt. Add news source links. Cache responses. This is the layer that turns it from a visualization into a story.</div>
+          <div class="atlas-phase-time">Est. ~3–4 days</div>
+        </div>
+      </div>
+      <div class="atlas-phase-row">
+        <div class="atlas-phase-num">Phase 4</div>
+        <div class="atlas-phase-content">
+          <div class="atlas-phase-title">Arc Relationships + Unrest Pulse</div>
+          <div class="atlas-phase-desc">Animated arcs between countries color-coded by relationship type. Internal pulse animation for unrest. Layer toggle UI so users can isolate trade, conflict, or diplomatic arcs. Filter panel for region / arc type.</div>
+          <div class="atlas-phase-time">Est. ~1 week</div>
+        </div>
+      </div>
+      <div class="atlas-phase-row">
+        <div class="atlas-phase-num">Phase 5</div>
+        <div class="atlas-phase-content">
+          <div class="atlas-phase-title">Polish + Deploy</div>
+          <div class="atlas-phase-desc">Performance optimization (arc culling for off-screen countries), mobile responsiveness, loading states, error handling, Vercel deployment. Optional: time-scrubber to replay the globe's state over the past 30 days.</div>
+          <div class="atlas-phase-time">Est. ~ongoing</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Design aesthetic -->
+  <div class="atlas-section">
+    <div class="atlas-section-header">
+      <span class="atlas-section-num">07</span>
+      <span class="atlas-section-title">Visual Design Direction</span>
+    </div>
+    <div class="atlas-grid-3">
+      <div class="atlas-card">
+        <div class="atlas-card-label">Globe aesthetic</div>
+        <div class="atlas-card-value">Dark navy void. Countries as matte surfaces. Arcs glow like light on glass. Feels like a war room, not a data dashboard.</div>
+      </div>
+      <div class="atlas-card">
+        <div class="atlas-card-label">Color system</div>
+        <div class="atlas-card-value">Stability: cold blue → amber → deep red. Arcs: teal (trade), orange (diplomacy), red (conflict), gray (neutral).</div>
+      </div>
+      <div class="atlas-card">
+        <div class="atlas-card-label">Typography</div>
+        <div class="atlas-card-value">Country labels in tight caps. Digest panel in a refined serif — the contrast between the cold map and the warm editorial voice matters.</div>
+      </div>
+    </div>
+    <p class="atlas-body">The Civ reference is about <strong>legibility and weight</strong> — not literal gamification. The globe should feel like something consequential is being revealed. Not playful; geopolitically serious with a cinematic edge. Think less Bloomberg Terminal, more Dr. Strangelove war room crossed with a Verso Books cover.</p>
+  </div>
+
+  <!-- Open questions -->
+  <div class="atlas-section">
+    <div class="atlas-section-header">
+      <span class="atlas-section-num">08</span>
+      <span class="atlas-section-title">Open Questions to Resolve</span>
+    </div>
+    <table class="atlas-table">
+      <thead><tr><th>Question</th><th>Stakes</th></tr></thead>
+      <tbody>
+        <tr><td>Globe.gl vs raw Three.js?</td><td>Globe.gl is faster to prototype; Three.js gives more visual control. Start with Globe.gl, migrate if needed.</td></tr>
+        <tr><td>How many bilateral relationships to track?</td><td>All 195² pairs is computationally excessive. Prioritize G20 + active conflict zones (~60–80 pairs) for MVP.</td></tr>
+        <tr><td>Perplexity Computer refresh cadence?</td><td>Bonus credits are finite. Balance freshness vs credit burn — 4–6h refresh for major pairs, 24h for quiet ones.</td></tr>
+        <tr><td>GDELT data quality?</td><td>GDELT is noisy — needs filtering to avoid false positives. Perplexity's layer provides the sanity check.</td></tr>
+        <tr><td>Time-scrubber feature?</td><td>Compelling but complex — requires historical data storage. Defer to Phase 5 or beyond.</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div style="border-top: 0.5px solid var(--color-border-tertiary); padding-top: 1rem; display: flex; justify-content: space-between; align-items: center;">
+    <span style="font-size:9px; letter-spacing:0.12em; text-transform:uppercase; color:var(--color-text-tertiary)">ATLAS · Project Brief · Draft</span>
+    <button onclick="sendPrompt('Let\'s start building Phase 1 of ATLAS — the 3D globe prototype')" style="font-family: var(--atlas-mono); font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase; padding: 6px 14px; border-radius: 4px; cursor: pointer;">Start Phase 1 ↗</button>
+  </div>
+
+</div>
