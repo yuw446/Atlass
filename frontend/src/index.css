@@ -39,9 +39,9 @@ html, body, #root {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Globe canvas background */
+/* Globe canvas background — space black behind the 3D canvas */
 .globe-container {
-  background: radial-gradient(ellipse at center, #0D1A2E 0%, #080B14 70%);
+  background: #04060C;
   cursor: grab;
 }
 .globe-container:active {

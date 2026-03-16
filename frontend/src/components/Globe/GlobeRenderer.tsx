@@ -1,5 +1,6 @@
 import { useRef, useCallback, useMemo, useEffect } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
+import * as THREE from 'three';
 import { useGlobeStore } from '../../store/globeStore';
 import {
   ARC_COLORS,
@@ -24,14 +25,33 @@ interface ConflictMarker {
   code: string;
 }
 
+// Generate a solid-color canvas texture for the ocean surface
+function makeOceanTexture(): string {
+  const canvas = document.createElement('canvas');
+  canvas.width = 2;
+  canvas.height = 2;
+  const ctx = canvas.getContext('2d')!;
+  ctx.fillStyle = '#061828';
+  ctx.fillRect(0, 0, 2, 2);
+  return canvas.toDataURL();
+}
+
+const OCEAN_TEXTURE_URL = makeOceanTexture();
+
+// Stroke colors: sea-boundary look — light coastal blue on hover/select
+const STROKE_BASE     = '70'; // hex alpha suffix for flag color at rest
+const STROKE_HOVER    = 'rgba(80, 160, 220, 0.85)';
+const STROKE_SELECTED = 'rgba(140, 210, 255, 0.95)';
+
 export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
 
-  const features      = useGlobeStore(s => s.features);
-  const arcs          = useGlobeStore(s => s.arcs);
+  const features        = useGlobeStore(s => s.features);
+  const arcs            = useGlobeStore(s => s.arcs);
+  const countryMap      = useGlobeStore(s => s.countryMap);
   const hoveredCountry  = useGlobeStore(s => s.hoveredCountry);
   const selectedCountry = useGlobeStore(s => s.selectedCountry);
-  const autoRotate    = useGlobeStore(s => s.autoRotate);
+  const autoRotate      = useGlobeStore(s => s.autoRotate);
 
   const setHoveredCountry = useGlobeStore(s => s.setHoveredCountry);
   const selectCountry     = useGlobeStore(s => s.selectCountry);
@@ -45,16 +65,51 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     controls.autoRotateSpeed = 0.3;
   }, [autoRotate]);
 
+  // Fly camera to selected country centroid
+  useEffect(() => {
+    if (!selectedCountry || !globeRef.current) return;
+    const country = countryMap.get(selectedCountry);
+    if (!country?.centroid) return;
+    const [lat, lng] = country.centroid;
+    globeRef.current.pointOfView({ lat, lng, altitude: 1.5 }, 1000);
+  }, [selectedCountry, countryMap]);
+
   const handleGlobeReady = useCallback(() => {
     if (!globeRef.current) return;
+
+    // Initial camera position
     globeRef.current.pointOfView({ lat: 20, lng: 15, altitude: 2.5 }, 0);
+
+    // Start auto-rotate
     const controls = globeRef.current.controls();
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.3;
+
+    // Add star field to Three.js scene
+    const scene = globeRef.current.scene();
+    const starCount = 3000;
+    const positions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      const theta = Math.random() * Math.PI * 2;
+      const phi   = Math.acos(2 * Math.random() - 1);
+      const r     = 400 + Math.random() * 200;
+      positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      positions[i * 3 + 2] = r * Math.cos(phi);
+    }
+    const geom = new THREE.BufferGeometry();
+    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const mat = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 0.5,
+      sizeAttenuation: false,
+      transparent: true,
+      opacity: 0.75,
+    });
+    scene.add(new THREE.Points(geom, mat));
   }, []);
 
   // --- Polygon color functions ---
-  // Fill is binary: conflict (crimson) vs peaceful (navy)
   const polygonCapColor = useCallback((feat: object) => {
     const f = feat as GlobeFeature;
     const code = f.properties.ISO_A2;
@@ -75,16 +130,15 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     return UNREST_ALTITUDE[unrest as 0 | 1 | 2 | 3];
   }, [hoveredCountry, selectedCountry]);
 
-  // Border uses country's dominant flag color
+  // Coastal/sea boundary highlight on hover and select
   const polygonStrokeColor = useCallback((feat: object) => {
     const f = feat as GlobeFeature;
     const code      = f.properties.ISO_A2;
     const flagColor = f.properties.flag_color ?? '#334466';
 
-    if (code === selectedCountry) return '#ffffff';
-    if (code === hoveredCountry)  return flagColor;
-    // Dim the flag color slightly for base state
-    return flagColor + '99'; // 60% opacity via hex alpha
+    if (code === selectedCountry) return STROKE_SELECTED;
+    if (code === hoveredCountry)  return STROKE_HOVER;
+    return flagColor + STROKE_BASE;
   }, [hoveredCountry, selectedCountry]);
 
   const polygonLabel = useCallback((feat: object) => {
@@ -130,7 +184,6 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const arcDashGap    = useCallback(() => 0.7, []);
 
   // --- Conflict markers ---
-  // Derived from enriched features so they stay in sync with GeoJSON load
   const conflictMarkers = useMemo<ConflictMarker[]>(() => {
     return features
       .filter(f => f.properties.in_conflict && f.properties.countryData?.centroid)
@@ -169,8 +222,11 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     selectCountry(code);
   }, [selectCountry]);
 
+  // Only resume auto-rotate on mouse leave if no country is selected
   const onMouseEnter = useCallback(() => setAutoRotate(false), [setAutoRotate]);
-  const onMouseLeave = useCallback(() => setAutoRotate(true),  [setAutoRotate]);
+  const onMouseLeave = useCallback(() => {
+    if (!selectedCountry) setAutoRotate(true);
+  }, [setAutoRotate, selectedCountry]);
 
   const memoArcs = useMemo(() => arcs, [arcs]);
 
@@ -184,8 +240,8 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
         ref={globeRef}
         width={width}
         height={height}
-        globeImageUrl=""
-        backgroundColor="rgba(0,0,0,0)"
+        globeImageUrl={OCEAN_TEXTURE_URL}
+        backgroundColor="rgba(4,6,12,1)"
         showGraticules={false}
         showAtmosphere={true}
         atmosphereColor="#1a3a5c"

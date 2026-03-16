@@ -39,7 +39,7 @@ export const useGlobeStore = create<GlobeState>((set) => ({
   setCountryMap: (map) => set({ countryMap: map }),
   setHoveredCountry: (code) => set({ hoveredCountry: code }),
   selectCountry: (code) =>
-    set({ selectedCountry: code, isPanelOpen: code !== null }),
-  closePanel: () => set({ selectedCountry: null, isPanelOpen: false }),
+    set({ selectedCountry: code, isPanelOpen: code !== null, autoRotate: false }),
+  closePanel: () => set({ selectedCountry: null, isPanelOpen: false, autoRotate: true }),
   setAutoRotate: (val) => set({ autoRotate: val }),
 }));
