@@ -47,6 +47,19 @@ function LoadingSkeleton() {
 }
 
 // ---------------------------------------------------------------------------
+// Timestamp formatter
+// ---------------------------------------------------------------------------
+const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+
+function formatEventDate(iso?: string): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${pad(d.getUTCDate())} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}  ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+}
+
+// ---------------------------------------------------------------------------
 // Event type badge
 // ---------------------------------------------------------------------------
 const EVENT_TYPE_COLORS: Record<string, string> = {
@@ -259,6 +272,17 @@ export default function DigestPanel() {
                 style={{ borderLeft: `2px solid ${cardBorder}`, paddingLeft: 12 }}
               >
                 <EventTypeBadge type={event.event_type} />
+                {formatEventDate(event.published_at) && (
+                  <div style={{
+                    fontSize: 9,
+                    fontFamily: 'monospace',
+                    letterSpacing: '0.08em',
+                    color: 'rgba(255,255,255,0.3)',
+                    marginBottom: 8,
+                  }}>
+                    {formatEventDate(event.published_at)}
+                  </div>
+                )}
                 {event.image_url ? (
                   <img
                     src={event.image_url}

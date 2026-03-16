@@ -26,93 +26,57 @@ interface ConflictMarker {
 }
 
 // ---------------------------------------------------------------------------
-// Ocean texture — 512×512 canvas with gradient + subtle wave shimmer
+// Solid near-black globe surface texture (ocean layer sits on top via Three.js)
 // ---------------------------------------------------------------------------
-function makeOceanTexture(): string {
-  const S = 512;
-  const canvas = document.createElement('canvas');
-  canvas.width  = S;
-  canvas.height = S;
-  const ctx = canvas.getContext('2d')!;
-
-  // Base: deep navy gradient
-  const base = ctx.createLinearGradient(0, 0, S, S);
-  base.addColorStop(0,   '#030d18');
-  base.addColorStop(0.35,'#071828');
-  base.addColorStop(0.65,'#061522');
-  base.addColorStop(1,   '#040e1a');
-  ctx.fillStyle = base;
-  ctx.fillRect(0, 0, S, S);
-
-  // Mid-depth colour band — faint teal tinge at equatorial latitudes
-  const mid = ctx.createLinearGradient(0, S * 0.3, 0, S * 0.7);
-  mid.addColorStop(0, 'rgba(0,0,0,0)');
-  mid.addColorStop(0.5, 'rgba(5,30,55,0.28)');
-  mid.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = mid;
-  ctx.fillRect(0, 0, S, S);
-
-  // Diagonal wave shimmer lines
-  ctx.save();
-  ctx.rotate(Math.PI / 8);
-  ctx.translate(-S * 0.5, -S * 0.1);
-  for (let i = -S; i < S * 2.5; i += 9) {
-    ctx.beginPath();
-    ctx.strokeStyle = `rgba(12,55,110,${0.06 + Math.random() * 0.04})`;
-    ctx.lineWidth = 0.8;
-    for (let x = 0; x < S * 2; x += 3) {
-      const y = i + Math.sin(x * 0.025 + i * 0.01) * 3.5
-                  + Math.sin(x * 0.012) * 2;
-      if (x === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
-  ctx.restore();
-
-  // Soft specular highlight — top-left sun reflection
-  const spec = ctx.createRadialGradient(S * 0.3, S * 0.2, 0, S * 0.3, S * 0.2, S * 0.55);
-  spec.addColorStop(0,   'rgba(20,80,160,0.18)');
-  spec.addColorStop(0.5, 'rgba(10,45,90,0.08)');
-  spec.addColorStop(1,   'rgba(0,0,0,0)');
-  ctx.fillStyle = spec;
-  ctx.fillRect(0, 0, S, S);
-
-  return canvas.toDataURL();
+function makeBlackGlobeTexture(): string {
+  const c = document.createElement('canvas');
+  c.width = 1; c.height = 1;
+  const ctx = c.getContext('2d')!;
+  ctx.fillStyle = '#020810';
+  ctx.fillRect(0, 0, 1, 1);
+  return c.toDataURL();
 }
-
-const OCEAN_TEXTURE_URL = makeOceanTexture();
+const BLACK_GLOBE_URL = makeBlackGlobeTexture();
 
 // ---------------------------------------------------------------------------
-// Altitude from bounding box — small countries zoom in tighter
+// Bounding-box helpers — shared by centroid fallback + altitude computation
 // ---------------------------------------------------------------------------
-function computeAltitude(features: GlobeFeature[], code: string): number {
+interface Bounds { minLat: number; maxLat: number; minLng: number; maxLng: number }
+
+function getFeatureBounds(features: GlobeFeature[], code: string): Bounds | null {
   const feat = features.find(f => f.properties.ISO_A2 === code);
-  if (!feat) return 1.5;
+  if (!feat) return null;
 
   let minLat =  Infinity, maxLat = -Infinity;
   let minLng =  Infinity, maxLng = -Infinity;
 
-  const processCoord = (coord: number[]) => {
-    if (coord[0] < minLng) minLng = coord[0];
-    if (coord[0] > maxLng) maxLng = coord[0];
-    if (coord[1] < minLat) minLat = coord[1];
-    if (coord[1] > maxLat) maxLat = coord[1];
+  const pt  = (c: number[]) => {
+    if (c[0] < minLng) minLng = c[0]; if (c[0] > maxLng) maxLng = c[0];
+    if (c[1] < minLat) minLat = c[1]; if (c[1] > maxLat) maxLat = c[1];
   };
-  const processRing    = (ring: number[][])     => ring.forEach(processCoord);
-  const processPoly    = (poly: number[][][])   => poly.forEach(processRing);
-  const processMulti   = (multi: number[][][][])=> multi.forEach(processPoly);
+  const ring  = (r: number[][])     => r.forEach(pt);
+  const poly  = (p: number[][][])   => p.forEach(ring);
+  const multi = (m: number[][][][]) => m.forEach(poly);
 
-  const geom = feat.geometry;
-  if      (geom.type === 'Polygon')      processPoly(geom.coordinates as number[][][]);
-  else if (geom.type === 'MultiPolygon') processMulti(geom.coordinates as number[][][][]);
+  const g = feat.geometry;
+  if      (g.type === 'Polygon')      poly(g.coordinates  as number[][][]);
+  else if (g.type === 'MultiPolygon') multi(g.coordinates as number[][][][]);
 
-  const latSpan = maxLat - minLat;
-  const lngSpan = maxLng - minLng;
-  const extent  = Math.max(latSpan, lngSpan);
+  return isFinite(minLat) ? { minLat, maxLat, minLng, maxLng } : null;
+}
 
-  // Linear map: extent 2° → altitude 0.35, extent 90° → altitude 2.2
-  const alt = 0.35 + (extent / 90) * 1.85;
-  return Math.max(0.35, Math.min(2.4, alt));
+function computeAltitude(features: GlobeFeature[], code: string): number {
+  const b = getFeatureBounds(features, code);
+  if (!b) return 1.5;
+  const extent = Math.max(b.maxLat - b.minLat, b.maxLng - b.minLng);
+  // extent 2° → alt ~0.4   |   extent 90° → alt ~2.2
+  return Math.max(0.35, Math.min(2.4, 0.35 + (extent / 90) * 1.85));
+}
+
+function computeCentroid(features: GlobeFeature[], code: string): [number, number] | null {
+  const b = getFeatureBounds(features, code);
+  if (!b) return null;
+  return [(b.minLat + b.maxLat) / 2, (b.minLng + b.maxLng) / 2];
 }
 
 export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
@@ -128,10 +92,7 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const setHoveredCountry = useGlobeStore(s => s.setHoveredCountry);
   const selectCountry     = useGlobeStore(s => s.selectCountry);
 
-  // Sync autoRotate to OrbitControls whenever the store value changes.
-  // OrbitControls already pauses rotation during active user drag
-  // (mousedown/touchstart) and resumes after, so no mouse-enter/leave
-  // handlers are needed here.
+  // Sync autoRotate to OrbitControls
   useEffect(() => {
     if (!globeRef.current) return;
     const controls = globeRef.current.controls();
@@ -139,14 +100,16 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     controls.autoRotateSpeed = 0.3;
   }, [autoRotate]);
 
-  // Fly camera to selected country; altitude adapts to country bounding box
+  // Fly camera to selected country.
+  // Prefers hardcoded centroid (hand-tuned); falls back to GeoJSON bbox centre
+  // so any country in the GeoJSON (e.g. Cuba, Bahamas) is handled.
   useEffect(() => {
     if (!selectedCountry || !globeRef.current) return;
-    const country = countryMap.get(selectedCountry);
-    if (!country?.centroid) return;
-    const [lat, lng] = country.centroid;
-    const altitude   = computeAltitude(features, selectedCountry);
-    globeRef.current.pointOfView({ lat, lng, altitude }, 1000);
+    const hardcoded = countryMap.get(selectedCountry);
+    const centroid  = hardcoded?.centroid ?? computeCentroid(features, selectedCountry);
+    if (!centroid) return;
+    const [lat, lng] = centroid;
+    globeRef.current.pointOfView({ lat, lng, altitude: computeAltitude(features, selectedCountry) }, 1000);
   }, [selectedCountry, countryMap, features]);
 
   const handleGlobeReady = useCallback(() => {
@@ -158,32 +121,40 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     controls.autoRotate      = true;
     controls.autoRotateSpeed = 0.3;
 
-    // ---- Star field --------------------------------------------------------
-    const scene     = globeRef.current.scene();
-    const starCount = 3000;
-    const positions = new Float32Array(starCount * 3);
+    const scene = globeRef.current.scene();
 
-    for (let i = 0; i < starCount; i++) {
+    // ---- Semi-transparent ocean layer ------------------------------------
+    // Sits at radius 100.2 (slightly above globe sphere at 100).
+    // Transparent, depth-tested: only renders over bare globe (ocean areas),
+    // not over country polygons which are at altitude 0.005+ (radius 100.5+).
+    const oceanMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(100.2, 64, 64),
+      new THREE.MeshBasicMaterial({
+        color:       new THREE.Color(0x0b3d70),
+        transparent: true,
+        opacity:     0.58,
+        depthWrite:  false,
+      }),
+    );
+    scene.add(oceanMesh);
+
+    // ---- Star field -------------------------------------------------------
+    const N   = 3000;
+    const pos = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) {
       const theta = Math.random() * Math.PI * 2;
       const phi   = Math.acos(2 * Math.random() - 1);
       const r     = 450 + Math.random() * 150;
-      positions[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
-      positions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
-      positions[i * 3 + 2] = r * Math.cos(phi);
+      pos[i * 3]     = r * Math.sin(phi) * Math.cos(theta);
+      pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta);
+      pos[i * 3 + 2] = r * Math.cos(phi);
     }
-
-    const geom = new THREE.BufferGeometry();
-    geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-
-    const mat = new THREE.PointsMaterial({
-      color:            0xffffff,
-      size:             0.5,
-      sizeAttenuation:  false,
-      transparent:      true,
-      opacity:          0.72,
-    });
-
-    scene.add(new THREE.Points(geom, mat));
+    const starGeom = new THREE.BufferGeometry();
+    starGeom.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    scene.add(new THREE.Points(starGeom, new THREE.PointsMaterial({
+      color: 0xffffff, size: 0.5, sizeAttenuation: false,
+      transparent: true, opacity: 0.72,
+    })));
   }, []);
 
   // --- Polygon color functions ---
@@ -191,7 +162,6 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     const f = feat as GlobeFeature;
     const code       = f.properties.ISO_A2;
     const isConflict = f.properties.in_conflict ?? false;
-
     if (code === selectedCountry) return isConflict ? FILL_SELECTED_CONFLICT : FILL_SELECTED_PEACEFUL;
     if (code === hoveredCountry)  return isConflict ? FILL_HOVER_CONFLICT    : FILL_HOVER_PEACEFUL;
     return isConflict ? FILL_CONFLICT : FILL_PEACEFUL;
@@ -199,73 +169,53 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
 
   const polygonAltitude = useCallback((feat: object) => {
     const f    = feat as GlobeFeature;
-    const unrest = f.properties.unrest_level ?? 0;
-    const code   = f.properties.ISO_A2;
-
+    const code = f.properties.ISO_A2;
     if (code === selectedCountry) return 0.04;
     if (code === hoveredCountry)  return 0.02;
-    return UNREST_ALTITUDE[unrest as 0 | 1 | 2 | 3];
+    return UNREST_ALTITUDE[(f.properties.unrest_level ?? 0) as 0 | 1 | 2 | 3];
   }, [hoveredCountry, selectedCountry]);
 
-  // Sea-boundary highlight: bright coastal blue on hover, white-cyan on select.
-  // Uses solid opaque colors so Three.js LineBasicMaterial renders them reliably.
+  // Coastline / sea-boundary borders — always visible, brighter on interaction
   const polygonStrokeColor = useCallback((feat: object) => {
-    const f         = feat as GlobeFeature;
-    const code      = f.properties.ISO_A2;
-    const flagColor = f.properties.flag_color ?? '#334466';
-
-    if (code === selectedCountry) return '#A8DCFF';   // bright coastal cyan
-    if (code === hoveredCountry)  return '#3FA8E0';   // ocean blue
-    return flagColor + '66';                          // flag color at 40% opacity
+    const code = (feat as GlobeFeature).properties.ISO_A2;
+    if (code === selectedCountry) return '#A8DCFF';          // bright coastal cyan
+    if (code === hoveredCountry)  return '#3FA8E0';          // ocean blue
+    return 'rgba(80, 150, 220, 0.45)';                       // always-on thin coastline
   }, [hoveredCountry, selectedCountry]);
 
   const polygonLabel = useCallback((feat: object) => {
-    const f    = feat as GlobeFeature;
+    const f   = feat as GlobeFeature;
     const data = f.properties.countryData;
     const name  = data?.name ?? f.properties.ADMIN ?? f.properties.ISO_A2 ?? '';
     const flag  = data?.flag ?? '';
     const inConflict  = f.properties.in_conflict ?? false;
     const statusColor = inConflict ? '#e05050' : '#4a9a6a';
     const statusLabel = inConflict ? 'ACTIVE CONFLICT' : 'NO ACTIVE CONFLICT';
-    return `
-      <div style="
-        background: rgba(8,11,20,0.92);
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 4px;
-        padding: 8px 12px;
-        font-family: 'Space Mono', monospace;
-        color: #e8ecf4;
-        pointer-events: none;
-      ">
-        <div style="font-size:12px;font-weight:600;margin-bottom:4px;">
-          ${flag} ${name}
-        </div>
-        <div style="font-size:10px;letter-spacing:0.1em;text-transform:uppercase;color:${statusColor};">
-          ${statusLabel}
-        </div>
-      </div>
-    `;
+    return `<div style="
+        background:rgba(8,11,20,0.92);border:1px solid rgba(255,255,255,0.12);
+        border-radius:4px;padding:8px 12px;font-family:'Space Mono',monospace;
+        color:#e8ecf4;pointer-events:none;">
+      <div style="font-size:12px;font-weight:600;margin-bottom:4px;">${flag} ${name}</div>
+      <div style="font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:${statusColor};">${statusLabel}</div>
+    </div>`;
   }, []);
 
-  // --- Arc color functions ---
-  const arcColor     = useCallback((arc: object) => {
-    const base = ARC_COLORS[(arc as ArcData).type];
-    return [base, base];
-  }, []);
-  const arcStroke    = useCallback((arc: object) => (arc as ArcData).intensity * 0.6 + 0.1, []);
+  // --- Arc functions ---
+  const arcColor      = useCallback((a: object) => { const c = ARC_COLORS[(a as ArcData).type]; return [c, c]; }, []);
+  const arcStroke     = useCallback((a: object) => (a as ArcData).intensity * 0.6 + 0.1, []);
   const arcDashLength = useCallback(() => 0.3, []);
   const arcDashGap    = useCallback(() => 0.7, []);
 
   // --- Conflict markers ---
-  const conflictMarkers = useMemo<ConflictMarker[]>(() => {
-    return features
+  const conflictMarkers = useMemo<ConflictMarker[]>(() =>
+    features
       .filter(f => f.properties.in_conflict && f.properties.countryData?.centroid)
       .map(f => ({
         lat:  f.properties.countryData!.centroid[0],
         lng:  f.properties.countryData!.centroid[1],
         code: f.properties.ISO_A2,
-      }));
-  }, [features]);
+      })),
+  [features]);
 
   const buildConflictElement = useCallback((_d: object): HTMLElement => {
     const el = document.createElement('div');
@@ -293,7 +243,7 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
       ref={globeRef}
       width={width}
       height={height}
-      globeImageUrl={OCEAN_TEXTURE_URL}
+      globeImageUrl={BLACK_GLOBE_URL}
       backgroundColor="rgba(4,6,12,1)"
       showGraticules={false}
       showAtmosphere={true}
