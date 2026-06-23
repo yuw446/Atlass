@@ -65,3 +65,11 @@ export interface DigestData {
   updated_at: string;
   cached: boolean;
 }
+
+export interface GdeltEvent {
+  lat: number;
+  lon: number;
+  timestamp: string;   // YYYYMMDD
+  eventCode: number;   // GDELT EventRootCode (1–20)
+  goldstein: number;   // −10 to +10
+}

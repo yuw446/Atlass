@@ -15,7 +15,70 @@ import {
   STATUS_HOVER_FILLS,
   STATUS_SELECTED_FILLS,
 } from './colorUtils';
-import type { GlobeFeature, ArcData, ConflictStatus } from '../../types';
+import type { GlobeFeature, ArcData, ConflictStatus, GdeltEvent } from '../../types';
+
+// ---------------------------------------------------------------------------
+// Civ strategic globe material — satellite texture + desaturation shader
+// ---------------------------------------------------------------------------
+const STRATEGIC_VERT = /* glsl */`
+  varying vec2 vUv;
+  void main() {
+    vUv = uv;
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  }
+`;
+
+const STRATEGIC_FRAG = /* glsl */`
+  uniform sampler2D globeTexture;
+  uniform sampler2D bumpTexture;
+  uniform float saturation;
+  uniform vec3 colorGrade;
+  uniform float bumpStrength;
+  varying vec2 vUv;
+
+  void main() {
+    vec4 color = texture2D(globeTexture, vUv);
+
+    // Desaturate
+    float luma = dot(color.rgb, vec3(0.299, 0.587, 0.114));
+    vec3 desaturated = mix(vec3(luma), color.rgb, saturation);
+
+    // Cool-olive strategic color grade
+    desaturated *= colorGrade;
+
+    // Terrain relief via derivative-based bump (screen-space UV offset, WebGL 1 safe)
+    float bumpCenter = texture2D(bumpTexture, vUv).r;
+    float bumpDx = texture2D(bumpTexture, vUv + vec2(0.001, 0.0)).r - bumpCenter;
+    float bumpDy = texture2D(bumpTexture, vUv + vec2(0.0, 0.001)).r - bumpCenter;
+    float bumpLight = 1.0 + (bumpDx + bumpDy) * bumpStrength * 3.0;
+    bumpLight = clamp(bumpLight, 0.6, 1.4);
+    desaturated *= bumpLight;
+
+    gl_FragColor = vec4(desaturated, 1.0);
+  }
+`;
+
+function createStrategicGlobeMaterial(): THREE.ShaderMaterial {
+  const loader = new THREE.TextureLoader();
+  const satelliteTexture = loader.load('/textures/earth-blue-marble.jpg');
+  const topologyTexture  = loader.load('/textures/earth-topology.png');
+  satelliteTexture.minFilter = THREE.LinearMipmapLinearFilter;
+  topologyTexture.minFilter  = THREE.LinearMipmapLinearFilter;
+
+  return new THREE.ShaderMaterial({
+    uniforms: {
+      globeTexture: { value: satelliteTexture },
+      bumpTexture:  { value: topologyTexture },
+      saturation:   { value: 0.45 },
+      colorGrade:   { value: new THREE.Vector3(0.88, 0.92, 0.82) },
+      bumpStrength: { value: 0.8 },
+    },
+    vertexShader:   STRATEGIC_VERT,
+    fragmentShader: STRATEGIC_FRAG,
+  });
+}
+
+const STRATEGIC_MATERIAL = createStrategicGlobeMaterial();
 
 interface GlobeRendererProps {
   width: number;
@@ -27,19 +90,6 @@ interface ConflictMarker {
   lng: number;
   code: string;
 }
-
-// ---------------------------------------------------------------------------
-// Solid near-black globe surface texture (ocean layer sits on top via Three.js)
-// ---------------------------------------------------------------------------
-function makeBlackGlobeTexture(): string {
-  const c = document.createElement('canvas');
-  c.width = 1; c.height = 1;
-  const ctx = c.getContext('2d')!;
-  ctx.fillStyle = '#020810';
-  ctx.fillRect(0, 0, 1, 1);
-  return c.toDataURL();
-}
-const BLACK_GLOBE_URL = makeBlackGlobeTexture();
 
 // ---------------------------------------------------------------------------
 // Bounding-box helpers — shared by centroid fallback + altitude computation
@@ -82,6 +132,28 @@ function computeCentroid(features: GlobeFeature[], code: string): [number, numbe
   return [(b.minLat + b.maxLat) / 2, (b.minLng + b.maxLng) / 2];
 }
 
+// ---------------------------------------------------------------------------
+// GDELT hex bin helpers
+// ---------------------------------------------------------------------------
+
+/** GDELT SQLDATE is YYYYMMDD. Convert to epoch ms (noon UTC on that day). */
+function parseGdeltDate(sqldate: string): number {
+  if (sqldate.length < 8) return 0;
+  const y = parseInt(sqldate.slice(0, 4), 10);
+  const m = parseInt(sqldate.slice(4, 6), 10) - 1;
+  const d = parseInt(sqldate.slice(6, 8), 10);
+  return Date.UTC(y, m, d, 12, 0, 0);
+}
+
+/** Map GDELT EventRootCode to a hex bin fill color. */
+function hexEventColor(code: number, alpha = 0.85): string {
+  if (code >= 18) return `rgba(192,57,43,${alpha})`;   // assault/fight/mass violence — crimson
+  if (code >= 14) return `rgba(230,126,34,${alpha})`;  // protest/force/coerce — amber
+  if (code >= 10) return `rgba(142,68,173,${alpha})`;  // demand/disapprove/threaten — purple
+  if (code >= 2 && code <= 5) return `rgba(26,82,118,${alpha})`; // diplomatic — steel blue
+  return `rgba(13,24,41,${alpha})`;                    // default — dark navy
+}
+
 export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
 
@@ -91,6 +163,9 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const hoveredCountry  = useGlobeStore(s => s.hoveredCountry);
   const selectedCountry = useGlobeStore(s => s.selectedCountry);
   const autoRotate      = useGlobeStore(s => s.autoRotate);
+  const activeLayer     = useGlobeStore(s => s.activeLayer);
+  const gdeltEvents     = useGlobeStore(s => s.gdeltEvents);
+  const hexCurrentTime  = useGlobeStore(s => s.hexCurrentTime);
 
   const setHoveredCountry = useGlobeStore(s => s.setHoveredCountry);
   const selectCountry     = useGlobeStore(s => s.selectCountry);
@@ -133,7 +208,7 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     const oceanMesh = new THREE.Mesh(
       new THREE.SphereGeometry(100.2, 64, 64),
       new THREE.MeshBasicMaterial({
-        color:       new THREE.Color(0x0b3d70),
+        color:       new THREE.Color(0x0a1e1e),  // dark teal — Civ ocean
         transparent: true,
         opacity:     0.58,
         depthWrite:  false,
@@ -257,16 +332,57 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
 
   const memoArcs = useMemo(() => arcs, [arcs]);
 
+  // --- Hex bin layer (GDELT events) ---
+  // Filter events by current scrubber time (if set); show all if null
+  const hexData = useMemo<GdeltEvent[]>(() => {
+    if (activeLayer !== 'gdelt-hex') return [];
+    if (!hexCurrentTime) return gdeltEvents;
+    // Show events from (hexCurrentTime - 24h) to hexCurrentTime
+    const cutoff = hexCurrentTime.getTime() - 24 * 60 * 60 * 1000;
+    return gdeltEvents.filter(e => {
+      const ts = parseGdeltDate(e.timestamp);
+      return ts >= cutoff && ts <= hexCurrentTime.getTime();
+    });
+  }, [activeLayer, gdeltEvents, hexCurrentTime]);
+
+  const hexAltitude = useCallback((hex: object) => {
+    // Height based on sumWeight (conflict intensity); age-decay if scrubber active
+    const h = hex as { sumWeight: number };
+    const base = Math.min(0.005 + h.sumWeight * 0.004, 0.15);
+    return base;
+  }, []);
+
+  const hexTopColor = useCallback((hex: object) => {
+    const h = hex as { points: GdeltEvent[] };
+    // Use the highest-severity event code to determine color
+    const maxCode = h.points.reduce((mx, e) => Math.max(mx, e.eventCode), 0);
+    return hexEventColor(maxCode);
+  }, []);
+
+  const hexSideColor = useCallback((hex: object) => {
+    const h = hex as { points: GdeltEvent[] };
+    const maxCode = h.points.reduce((mx, e) => Math.max(mx, e.eventCode), 0);
+    return hexEventColor(maxCode, 0.6);
+  }, []);
+
+  const onHexClick = useCallback((hex: object) => {
+    const h = hex as { center: { lat: number; lng: number }; points: GdeltEvent[] };
+    // Dispatch a custom event so App can open the hex digest panel
+    window.dispatchEvent(new CustomEvent('atlas:hex-click', {
+      detail: { lat: h.center.lat, lon: h.center.lng, pointCount: h.points.length },
+    }));
+  }, []);
+
   return (
     <Globe
       ref={globeRef}
       width={width}
       height={height}
-      globeImageUrl={BLACK_GLOBE_URL}
+      globeMaterial={STRATEGIC_MATERIAL}
       backgroundColor="rgba(4,6,12,1)"
       showGraticules={false}
       showAtmosphere={true}
-      atmosphereColor="#1a3a5c"
+      atmosphereColor="#142e2e"
       atmosphereAltitude={0.18}
 
       polygonsData={features}
@@ -291,6 +407,17 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
       arcDashGap={arcDashGap}
       arcDashAnimateTime={2000}
       arcAltitudeAutoScale={0.3}
+
+      hexBinPointsData={hexData}
+      hexBinPointLat={(d: object) => (d as GdeltEvent).lat}
+      hexBinPointLng={(d: object) => (d as GdeltEvent).lon}
+      hexBinPointWeight={(d: object) => Math.abs((d as GdeltEvent).goldstein)}
+      hexBinResolution={3}
+      hexMargin={0.2}
+      hexAltitude={hexAltitude}
+      hexTopColor={hexTopColor}
+      hexSideColor={hexSideColor}
+      onHexClick={onHexClick}
 
       onGlobeReady={handleGlobeReady}
     />

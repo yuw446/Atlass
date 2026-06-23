@@ -4,6 +4,7 @@ import cors from 'cors';
 import globeDataRouter from './routes/globeData.js';
 import digestRouter from './routes/digest.js';
 import ingestRouter from './routes/ingest.js';
+import eventsRouter from './routes/events.js';
 import { errorHandler } from './middleware/errorHandler.js';
 
 const app = express();
@@ -24,6 +25,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/globe-data', globeDataRouter);
 app.use('/api/digest',     digestRouter);
 app.use('/api/ingest',     ingestRouter);
+app.use('/api/events',     eventsRouter);
 
 // --- Error handler (must be last) ---
 app.use(errorHandler);
