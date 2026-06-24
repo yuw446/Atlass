@@ -42,3 +42,10 @@ The frontend opens on Vite's dev port; the backend serves `/api`. Backend env:
 See **`CLAUDE.md`** for architecture and conventions, **`LIMITATIONS.md`** for known
 edge cases, and **`TASKS.md`** for the roadmap. Live GDELT event data and a
 coordinate (hex) digest are in progress on the `wip/gdelt-integration` branch.
+
+## License
+
+Atlass is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0) — see
+[`LICENSE`](LICENSE). © 2026 yuw446. AGPL's network-use clause (§13) is deliberate: because Atlass
+is meant to be run as a hosted service, anyone who runs a modified version over a network must offer
+their users the corresponding source.
