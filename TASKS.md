@@ -1,6 +1,6 @@
 # ATLAS — Project Tasks & Progress
 
-> Last updated: 2026-03-16
+> Last updated: 2026-06-24
 > Stack: Vite + React 19 + TypeScript + Tailwind v4 (frontend) · Express 5 + TypeScript + Anthropic SDK (backend)
 
 ---
@@ -48,14 +48,14 @@
 - ✅ Mobile responsive (panel slides up from bottom)
 
 ### Frontend Data
-- ✅ 34-country hardcoded dataset (G20 + all active conflict zones)
+- ✅ 50-country hardcoded dataset (G20 + all active conflict zones)
 - ✅ Hardcoded relationship arcs (13 arcs across conflict / diplomacy / trade)
 - ✅ Zustand store (features, arcs, countryMap, hover, select, panel, autoRotate)
 - ✅ Vite proxy `/api` → `http://localhost:3001`
 - ✅ HMR: force full reload on `hardcoded.ts` changes
 
 ### Backend Core
-- ✅ Express 5 + TypeScript server (`backend/src/index.ts`)
+- ✅ Express 5 + TypeScript server (`backend/src/server.ts`)
 - ✅ `GET /api/health`
 - ✅ `GET /api/globe-data` (hardcoded, not yet live-merged)
 - ✅ `POST /api/digest` — Perplexity data → Claude fallback
