@@ -4,6 +4,10 @@ This document specifies the exact format for data packages that Perplexity drops
 `backend/data/inbox/`. The Atlas ingestion pipeline reads these files, validates and
 normalises them, then writes the data to disk (and Redis when available) for the API to serve.
 
+> **Files in this directory:** `INSTRUCTIONS.md` — the format contract (this file, authoritative);
+> `example-package.json` — a canonical valid example to copy from; `PROMPT.md` — the prompt fed to
+> Perplexity to produce a package. When the schema changes, keep all three in sync.
+
 ---
 
 ## File Naming Convention
