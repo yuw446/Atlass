@@ -43,3 +43,6 @@ backend/data/normalized/*.json
 
 # TypeScript build info
 *.tsbuildinfo
+
+# tick.yml checks the gh-pages branch out here when run locally
+site/

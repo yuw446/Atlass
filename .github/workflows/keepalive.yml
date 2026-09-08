@@ -1,0 +1,22 @@
+# GitHub disables scheduled workflows after 60 days without a commit to the default branch.
+# Pushes to gh-pages do not count. A weekly empty commit to main keeps the timer from ever reaching 60 days.
+name: keepalive
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          git config user.name "atlas-keepalive"
+          git config user.email "atlas-keepalive@users.noreply.github.com"
+          git commit --allow-empty -m "chore: keepalive $(date -u +%Y-%m-%d)"
+          git push

@@ -1,0 +1,57 @@
+# Atlas feed: one GDELT GKG batch every 15 minutes -> data/ on the gh-pages branch.
+# Schedules only fire from the default branch. The gh-pages branch is always exactly one commit.
+name: tick
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tick            # shared with pages.yml: every writer of gh-pages is serialised
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+
+      # No npm ci: shared/ and worker/ have no dependencies. Tests gate the tick.
+      - name: Test shared and worker
+        run: node --test "shared/*.test.ts" "worker/*.test.ts"
+
+      - name: Check out gh-pages (or create it)
+        run: |
+          git config --global user.name "atlas-tick"
+          git config --global user.email "atlas-tick@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch --depth 1 origin gh-pages
+            git worktree add site FETCH_HEAD
+          else
+            git worktree add --orphan site
+            touch site/.nojekyll
+            mkdir -p site/data
+          fi
+
+      - name: Tick
+        run: node worker/tick.ts --site site
+
+      - name: Publish (one commit, force-pushed)
+        run: |
+          cd site
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to publish"; exit 0; fi
+          git commit --quiet -m "tick $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          # Keep the branch at a single commit: rewrite it as an orphan holding the current tree.
+          git checkout --quiet --orphan gh-pages-next
+          git commit --quiet -m "atlas site + data $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push --force origin HEAD:gh-pages
