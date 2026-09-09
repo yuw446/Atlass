@@ -2,7 +2,7 @@ import { useRef, useCallback, useMemo, useEffect } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
 import * as THREE from 'three';
 import { useGlobeStore } from '../../store/globeStore';
-import { lightenHex } from './colorUtils';
+import { lightenHex, withAlpha } from './colorUtils';
 import { fillFor } from '../../lib/fill.ts';
 import { useTweenedColors } from '../../lib/useTween.ts';
 import { attentionWords } from '../../lib/text.ts';
@@ -12,15 +12,10 @@ import type { GlobeFeature } from '../../types';
 interface GlobeRendererProps { width: number; height: number }
 interface Spark { lat: number; lng: number; lens: number }
 
-// Solid near-black globe surface; the translucent ocean sphere sits on top via Three.js
-function makeBlackGlobeTexture(): string {
-  const c = document.createElement('canvas');
-  c.width = 1; c.height = 1;
-  c.getContext('2d')!.fillStyle = '#020810';
-  c.getContext('2d')!.fillRect(0, 0, 1, 1);
-  return c.toDataURL();
-}
-const BLACK_GLOBE_URL = makeBlackGlobeTexture();
+// NASA Blue Marble (daylight) surface, served with the GeoJSON. Country caps are translucent so the imagery reads
+// through them: unlit countries take a navy tint, lensed countries take their lens colour.
+const EARTH_TEXTURE_URL = `${import.meta.env.BASE_URL}geo/earth-blue-marble.jpg`;
+const CAP_ALPHA = 0.55;
 
 interface Bounds { minLat: number; maxLat: number; minLng: number; maxLng: number }
 function boundsOf(feat: GlobeFeature): Bounds | null {
@@ -90,11 +85,6 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.3;
     const scene = globe.scene();
-    // Translucent ocean just above the surface; polygons sit above it, so it only shows over water
-    scene.add(new THREE.Mesh(
-      new THREE.SphereGeometry(100.2, 64, 64),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(0x0b3d70), transparent: true, opacity: 0.58, depthWrite: false }),
-    ));
     const N = 3000, pos = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) {
       const theta = Math.random() * Math.PI * 2, phi = Math.acos(2 * Math.random() - 1), r = 450 + Math.random() * 150;
@@ -108,9 +98,9 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const polygonCapColor = useCallback((feat: object) => {
     const code = codeOf(feat);
     const base = displayed.get(code) ?? BASE_NAVY;
-    if (code === selectedCountry) return lightenHex(base, 0.3);
-    if (code === hoveredCountry) return lightenHex(base, 0.15);
-    return base;
+    if (code === selectedCountry) return withAlpha(lightenHex(base, 0.3), CAP_ALPHA);
+    if (code === hoveredCountry) return withAlpha(lightenHex(base, 0.15), CAP_ALPHA);
+    return withAlpha(base, CAP_ALPHA);
   }, [displayed, hoveredCountry, selectedCountry]);
 
   const polygonAltitude = useCallback((feat: object) => {
@@ -122,7 +112,7 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     const code = codeOf(feat);
     if (code === selectedCountry) return '#A8DCFF';
     if (code === hoveredCountry) return '#3FA8E0';
-    return 'rgba(80, 150, 220, 0.45)';
+    return 'rgba(255, 255, 255, 0.35)';
   }, [hoveredCountry, selectedCountry]);
 
   const polygonLabel = useCallback((feat: object) => {
@@ -149,16 +139,16 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
       ref={globeRef}
       width={width}
       height={height}
-      globeImageUrl={BLACK_GLOBE_URL}
+      globeImageUrl={EARTH_TEXTURE_URL}
       backgroundColor="rgba(4,6,12,1)"
       showGraticules={false}
       showAtmosphere={true}
-      atmosphereColor="#1a3a5c"
-      atmosphereAltitude={0.18}
+      atmosphereColor="#5aa9ff"
+      atmosphereAltitude={0.2}
 
       polygonsData={features}
       polygonCapColor={polygonCapColor}
-      polygonSideColor={() => '#080B14'}
+      polygonSideColor={() => 'rgba(8, 11, 20, 0.35)'}
       polygonStrokeColor={polygonStrokeColor}
       polygonAltitude={polygonAltitude}
       polygonLabel={polygonLabel}
