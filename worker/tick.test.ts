@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import {
   unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState,
   updateBaseline, seedBaselines, zOf, attOf, slotsToProcess, batchToIso, run, isSparkOnly, decodeEntities,
-  PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, type State, type Baseline, type Fetched,
+  PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
 } from './tick.ts';
 import { isSnapshot } from '../shared/snapshot.ts';
 
@@ -191,9 +191,11 @@ test('slotsToProcess: empty state → latest only; equal → none; a gap walks; 
   assert.deepEqual(slotsToProcess(ID, ID).slots, []);
   assert.deepEqual(slotsToProcess('20260908224500', ID).slots, ['20260908230000', '20260908231500', ID]);
   const far = slotsToProcess('20260901000000', ID);
-  assert.equal(far.slots.length, 8);
-  assert.equal(far.slots[7], ID);
+  assert.equal(far.slots.length, MAX_SLOTS);
+  assert.equal(far.slots[MAX_SLOTS - 1], ID);
   assert.match(far.jumped ?? '', /^20260901001500\.\./);
+  const gap = slotsToProcess('20260908000000', ID);
+  assert.equal(gap.slots.length, MAX_SLOTS, 'a long outage is caught up MAX_SLOTS at a time');
 });
 
 // ---------- hours ----------
