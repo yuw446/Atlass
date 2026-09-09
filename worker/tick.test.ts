@@ -253,6 +253,31 @@ test('run exits non-zero when the latest zip is unavailable', async () => {
   assert.equal(existsSync(join(site, 'data/latest.json')), false);
 });
 
+test('latest zip not yet published: retries, then processes it once it appears', async () => {
+  const site = mkdtempSync(join(tmpdir(), 'atlas-'));
+  let calls = 0;
+  const fetchFn = async (url: string): Promise<Fetched> => {
+    if (url.endsWith('lastupdate.txt')) return { status: 200, buf: lastupdate(ID) };
+    if (url === `${G}${ID}.gkg.csv.zip`) return ++calls < 3 ? { status: 404 } : { status: 200, buf: ZIP };
+    return { status: 404 };
+  };
+  const logs: string[] = [];
+  assert.equal(await run(site, fetchFn, s => logs.push(s), { retryDelayMs: 0 }), 0);
+  assert.equal(calls, 3);
+  assert.ok(logs.some(l => l.includes('not published yet')));
+  assert.equal(existsSync(join(site, 'data/latest.json')), true);
+});
+
+test('latest zip never appears: run ends cleanly without advancing, so the next cron retries', async () => {
+  const site = mkdtempSync(join(tmpdir(), 'atlas-'));
+  const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) } });
+  assert.equal(await run(site, fetchFn, () => {}, { latestRetries: 2, retryDelayMs: 0 }), 0);
+  assert.equal(existsSync(join(site, 'data/latest.json')), false);
+  const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  assert.equal(state.last_batch, null);
+  assert.deepEqual(state.skipped, []);
+});
+
 test('a gated batch is recorded as skipped and last_batch still advances', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
   const tiny = Buffer.from(CSV.toString('utf8').split('\n').slice(0, 50).join('\n') + '\n');
