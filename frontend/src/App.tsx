@@ -20,7 +20,7 @@ function UtcClock() {
   const pad = (n: number) => String(n).padStart(2, '0');
   const MONTHS = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
   return (
-    <div style={{ position: 'absolute', top: 24, right: 28, zIndex: 10, fontFamily: MONO, fontSize: 11, letterSpacing: '0.12em', color: 'rgba(232,236,244,0.45)', userSelect: 'none', pointerEvents: 'none', textAlign: 'right', lineHeight: 1.6 }}>
+    <div className="hide-mobile" style={{ position: 'absolute', top: 24, right: 28, zIndex: 10, fontFamily: MONO, fontSize: 11, letterSpacing: '0.12em', color: 'rgba(232,236,244,0.45)', userSelect: 'none', pointerEvents: 'none', textAlign: 'right', lineHeight: 1.6 }}>
       <div>{pad(now.getUTCDate())} {MONTHS[now.getUTCMonth()]} {now.getUTCFullYear()}</div>
       <div style={{ fontSize: 14, color: 'rgba(232,236,244,0.65)', letterSpacing: '0.18em' }}>
         {pad(now.getUTCHours())}:{pad(now.getUTCMinutes())}:{pad(now.getUTCSeconds())} <span style={{ fontSize: 9, opacity: 0.6 }}>UTC</span>
@@ -91,7 +91,7 @@ export default function App() {
       </div>
       <UtcClock />
       <Legend />
-      <div style={{ position: 'absolute', bottom: 28, right: isPanelOpen ? 408 : 28, zIndex: 10, fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: 'rgba(232,236,244,0.35)', userSelect: 'none', pointerEvents: 'none', transition: 'right 420ms cubic-bezier(0.16,1,0.3,1)' }}>
+      <div className="hide-mobile" style={{ position: 'absolute', bottom: 28, right: isPanelOpen ? 408 : 28, zIndex: 10, fontFamily: MONO, fontSize: 10, letterSpacing: '0.1em', color: 'rgba(232,236,244,0.35)', userSelect: 'none', pointerEvents: 'none', transition: 'right 420ms cubic-bezier(0.16,1,0.3,1)' }}>
         CLICK ANY COUNTRY
       </div>
       <Suspense fallback={<div className="globe-container w-full h-full" />}>

@@ -68,8 +68,9 @@ html, body, #root {
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: var(--color-border); border-radius: 2px; }
 
-/* Mobile: panel comes up from bottom */
+/* Mobile: panel comes up from bottom; the clock and the hint would overlap the status line and the legend */
 @media (max-width: 640px) {
+  .hide-mobile { display: none; }
   .story-panel {
     width: 100%;
     border-left: none;
