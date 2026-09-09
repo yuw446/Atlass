@@ -11,9 +11,32 @@ accepted, deferred, or waiting on something external.
 **Symptom:** a story lands on the wrong country (an Arlington Cemetery story on Iraq) or under the wrong lens (a
 politics story tagged `NATURAL_DISASTER`).
 **Root cause:** GKG themes and locations come from keyword and gazetteer matching over the article text.
-**In place:** primary country is the most-mentioned mapped country, not the first-mentioned; a lens needs at least
-two theme occurrences; `MANMADE_DISASTER_IMPLIED`, `KILL`, `GENERAL_HEALTH`, `MEDICAL` are excluded; a domain cap
-stops aggregators dominating. A manual precision check over 50 stories is the first follow-up task.
+**In place (measured 2026-09-09, `docs/precision-check.md`):** primary country is the most-mentioned mapped country,
+not the first-mentioned; a lens needs two theme occurrences and one per 200 words of text, so a passing mention in a
+long feature does not count; `WB_2433_CONFLICT_AND_VIOLENCE` only confirms a conflict story, `ECON_TRADE_DISPUTE`
+vetoes one, and `NATURAL_DISASTER_ICE`/`ICY`/`CHILL` never count (ICE the agency, ice cream); entertainment sections,
+review slugs and headline words drop the article; a domain cap stops aggregators dominating. On a labelled batch this
+took lens precision from 24% to 54% at 89% recall.
+**Still wrong, by class:** anniversary and history pieces carry the same themes as live conflict; a film about a
+historical revolt survives when its outlet has no section in the URL and no review word in the headline; crime and
+court stories reach Conflict through `TERROR` and `MILITARY`; market stories are lensed by the war they cite; local
+weather forecasts reach Disaster. No GKG field separates these: GCAM's culture dimension scores real war news as high
+as reviews. Country placement has not been checked.
+
+### Syndicated copies are merged by headline, not by event
+**Symptom (before 2026-09-09):** a wire story ran nine times in one country's panel under nine radio-station URLs, and
+"Hunter River Forum … | Dungog Chronicle" sat next to three sister papers' copies. 86 near-duplicate pairs in 843
+panel stories on the live snapshot.
+**Root cause:** the worker deduped by URL, and the story ring compared exact lowercased headlines.
+**In place:** `shared/title.ts` reduces a headline to content words (site tag off, possessives and plurals folded,
+stop words out); two headlines from the same country are one story when 80% of the shorter one's words appear in
+the longer one and cover half of it (four words minimum, exact match below that), so a templated wire headline that
+differs only by place name stays two stories. Applied after the domain cap, against the last eight batches by
+country-keyed normalised headline, and in each country's story ring. Five batches through a fresh state: no pairs left. About 30 to 50
+copies are dropped per batch and no longer inflate `n`, the fill, or the sparks.
+**Still separate:** three outlets' own headlines for one event ("Massive blast at weapons depot in Syria kills 14"
+/ "14 killed in blast at arms depot in northwest Syria") share too few words to merge; a wire copy that arrives two
+batches later with an edited headline is caught only in the panel ring, not in the counts.
 
 ### English-language sources only
 GDELT's main GKG feed is English. A separate translated feed covering 65 languages exists and is a later addition.
