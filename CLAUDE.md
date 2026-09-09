@@ -73,7 +73,7 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
 
 ## Keeping things in sync
 
-- Changing `frontend/public/data/countries.geojson`: run `npm run gen:codes` and commit the output; `pages.yml` fails otherwise.
+- Changing `frontend/public/geo/countries.geojson`: run `npm run gen:codes` and commit the output; `pages.yml` fails otherwise.
 - Changing the snapshot shape: update `shared/snapshot.ts`, the worker, the panel, and the fixture test together.
 - `TASKS.md` is the roadmap; update it at the end of a work session. `LIMITATIONS.md` records what is known to be
   imperfect and why; add to it when an investigation ends without a fix.

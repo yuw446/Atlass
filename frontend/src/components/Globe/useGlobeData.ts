@@ -16,7 +16,7 @@ export function useGlobeData() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`${import.meta.env.BASE_URL}data/countries.geojson`)
+    fetch(`${import.meta.env.BASE_URL}geo/countries.geojson`)
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() as Promise<{ features: RawFeature[] }>; })
       .then(geo => {
         if (cancelled) return;
