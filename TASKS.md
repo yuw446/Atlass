@@ -35,8 +35,9 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
   load, fill by lens, click → panel with images/sources/times, lens toggle, phone layout (clock and hint hidden under 640 px),
   older-than-window stories labelled. Not yet checked on a real phone over 4G.
 - ✅ `infra/tick-dispatch/` deployed (token by the owner; Durable Object alarm because Cloudflare cron never fired here)
-- ✅ Daylight Earth: NASA Blue Marble (4096×2048, from the three-globe package) replaces the black surface and the
-  Three.js ocean sphere; caps are translucent (`CAP_ALPHA`) so the imagery reads through. Night texture not tried yet.
+- ✅ Daylight Earth: NASA Blue Marble (4096×2048, re-encoded to 770 KB, from the three-globe package) replaces the black
+  surface and the Three.js ocean sphere; caps are translucent (`fillAlphaFor`: 0.35 unlit, 0.53–0.75 lensed by attention)
+  so the imagery reads through. Preloaded from `index.html`. Night texture and a bump map not tried yet.
 - ⬜ Send the link to three people and write down what they say first
 
 ## Next, in order (after the link is out)

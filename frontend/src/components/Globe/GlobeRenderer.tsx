@@ -2,8 +2,8 @@ import { useRef, useCallback, useMemo, useEffect } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
 import * as THREE from 'three';
 import { useGlobeStore } from '../../store/globeStore';
-import { lightenHex, withAlpha } from './colorUtils';
-import { fillFor } from '../../lib/fill.ts';
+import { lighten, withAlpha } from '../../lib/color.ts';
+import { fillFor, fillAlphaFor, UNLIT_ALPHA } from '../../lib/fill.ts';
 import { useTweenedColors } from '../../lib/useTween.ts';
 import { attentionWords } from '../../lib/text.ts';
 import { LENSES, BASE_NAVY } from '../../../../shared/lenses.ts';
@@ -12,10 +12,11 @@ import type { GlobeFeature } from '../../types';
 interface GlobeRendererProps { width: number; height: number }
 interface Spark { lat: number; lng: number; lens: number }
 
-// NASA Blue Marble (daylight) surface, served with the GeoJSON. Country caps are translucent so the imagery reads
-// through them: unlit countries take a navy tint, lensed countries take their lens colour.
+// NASA Blue Marble (daylight) surface, served with the GeoJSON (preloaded from index.html). Country caps are
+// translucent so the imagery reads through them: unlit countries take a light navy tint, lensed countries take their
+// lens colour at an alpha that rises with attention (see fill.ts).
 const EARTH_TEXTURE_URL = `${import.meta.env.BASE_URL}geo/earth-blue-marble.jpg`;
-const CAP_ALPHA = 0.55;
+const UNLIT_FILL = withAlpha(BASE_NAVY, UNLIT_ALPHA);
 
 interface Bounds { minLat: number; maxLat: number; minLng: number; maxLng: number }
 function boundsOf(feat: GlobeFeature): Bounds | null {
@@ -42,13 +43,16 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const setHoveredCountry = useGlobeStore(s => s.setHoveredCountry);
   const selectCountry     = useGlobeStore(s => s.selectCountry);
 
-  // Target fill per country: recomputed only when the snapshot or the lens filter changes. `features` never changes
-  // identity after load, so the polygon data-join is never re-run by a colour update.
+  // Target fill per country as rgba: recomputed only when the snapshot or the lens filter changes. `features` never
+  // changes identity after load, so the polygon data-join is never re-run by a colour update. The tween interpolates
+  // the alpha along with the colour (d3's LAB interpolator carries opacity).
   const target = useMemo(() => {
     const m = new Map<string, string>();
     for (const f of features) {
       const code = f.properties.code;
-      if (code) m.set(code, fillFor(snapshot?.countries[code], lensFilter));
+      if (!code) continue;
+      const c = snapshot?.countries[code];
+      m.set(code, withAlpha(fillFor(c, lensFilter), fillAlphaFor(c, lensFilter)));
     }
     return m;
   }, [features, snapshot, lensFilter]);
@@ -77,7 +81,10 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     globeRef.current.pointOfView({ lat: (b.minLat + b.maxLat) / 2, lng: (b.minLng + b.maxLng) / 2, altitude }, 1000);
   }, [selectedCountry, features]);
 
-  const handleGlobeReady = useCallback(() => {
+  // One-time scene setup on mount. Not in `onGlobeReady`: three-globe fires that only after the texture download
+  // succeeds, and a lost 770 KB request would otherwise silently leave the scene without stars or a starting view.
+  // react-globe.gl builds the globe in a layout effect, so the ref is populated by the time this effect runs.
+  useEffect(() => {
     const globe = globeRef.current;
     if (!globe) return;
     globe.pointOfView({ lat: 20, lng: 15, altitude: 2.5 }, 0);
@@ -97,10 +104,10 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
 
   const polygonCapColor = useCallback((feat: object) => {
     const code = codeOf(feat);
-    const base = displayed.get(code) ?? BASE_NAVY;
-    if (code === selectedCountry) return withAlpha(lightenHex(base, 0.3), CAP_ALPHA);
-    if (code === hoveredCountry) return withAlpha(lightenHex(base, 0.15), CAP_ALPHA);
-    return withAlpha(base, CAP_ALPHA);
+    const base = displayed.get(code) ?? UNLIT_FILL;
+    if (code === selectedCountry) return lighten(base, 0.3);
+    if (code === hoveredCountry) return lighten(base, 0.15);
+    return base;
   }, [displayed, hoveredCountry, selectedCountry]);
 
   const polygonAltitude = useCallback((feat: object) => {
@@ -163,8 +170,6 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
       pointColor={pointColor}
       pointAltitude={0.012}
       pointRadius={0.22}
-
-      onGlobeReady={handleGlobeReady}
     />
   );
 }

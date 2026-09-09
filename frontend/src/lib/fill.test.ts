@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { rgb } from 'd3-color';
-import { fillFor } from './fill.ts';
+import { fillFor, fillAlphaFor, UNLIT_ALPHA } from './fill.ts';
 import { LENSES, BASE_NAVY } from '../../../shared/lenses.ts';
 import type { CountrySnap } from '../../../shared/snapshot.ts';
 
@@ -24,4 +24,12 @@ test('lens filter hides countries with nothing under that lens and recolours the
   const country = c({ lens: [3, 2, 0, 0], dom: 0, att: 1 });
   assert.equal(fillFor(country, 2), BASE_NAVY);
   assert.equal(hex(fillFor(country, 1)), LENSES[1].color.toLowerCase());
+});
+
+test('cap alpha: unlit is the navy tint, lensed rises with attention, filtered-out drops to unlit', () => {
+  assert.equal(fillAlphaFor(undefined, null), UNLIT_ALPHA);
+  assert.equal(fillAlphaFor(c({ n: 0, lens: [0, 0, 0, 0], dom: -1 }), null), UNLIT_ALPHA);
+  const low = fillAlphaFor(c({ att: 0 }), null), high = fillAlphaFor(c({ att: 1 }), null);
+  assert.ok(low > UNLIT_ALPHA && high > low && high <= 1, `${low} < ${high}`);
+  assert.equal(fillAlphaFor(c({ lens: [3, 2, 0, 0], dom: 0 }), 2), UNLIT_ALPHA);
 });
