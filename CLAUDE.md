@@ -57,9 +57,10 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
 - The repository is private on GitHub Pro. Pages works on private repos; the cron uses about 2,900 of 3,000 Actions
   minutes a month at one minute per tick. The tick job installs nothing so it stays fast.
 - GitHub's `schedule` trigger dropped 42 of the first 44 ticks on this private repo. The punctual trigger is
-  `infra/tick-dispatch/`, a Cloudflare Worker cron that calls the workflow-dispatch API at :02, :17, :32, :47
-  (deployed by the owner with a repo-scoped token; see its README). `tick.yml` keeps `schedule:` as a fallback, and
-  `keepalive.yml` pushes an empty commit weekly so the fallback is never disabled for inactivity.
+  `infra/tick-dispatch/`, a Cloudflare Worker whose **Durable Object alarm** calls the workflow-dispatch API at
+  :02, :17, :32, :47 (Cloudflare Cron Triggers never fired on this account; the alarm re-arms itself; `/arm` restarts
+  the chain, `/status` shows the next ring). `tick.yml` keeps `schedule:` as a fallback, and `keepalive.yml` pushes
+  an empty commit weekly so the fallback is never disabled for inactivity.
 - Keep `frontend`'s `three` pinned to the version `globe.gl` requires (`npm ls three` must show one copy), or the
   vendor chunk ships two copies of Three.js and the console warns "Multiple instances".
 - `pages.yml` copies `dist/` into the `gh-pages` worktree with `rsync --delete`; `.git` must stay excluded or the

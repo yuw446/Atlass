@@ -1,17 +1,73 @@
-// Cloudflare Worker: a punctual cron that asks GitHub to run the tick workflow.
-// GitHub's own schedule dropped 42 of 44 runs on the first night; Cloudflare crons fire to the minute.
-// Fires at :02, :17, :32, :47 so GDELT has two minutes to finish publishing the quarter-hour batch.
+// Cloudflare Worker: a punctual clock that asks GitHub to run the tick workflow every 15 minutes.
+//
+// GitHub's own `schedule:` dropped 42 of the first 44 runs. Cloudflare Cron Triggers registered fine but never
+// invoked scheduled() on this account (a documented, ongoing Cloudflare fault in 2026), so the clock is a
+// Durable Object alarm instead: one object, one alarm at a time, re-armed from inside alarm() before the
+// dispatch so a failed dispatch can never break the chain. The cron trigger is kept only to re-arm the alarm
+// if it ever works. Fires at :02, :17, :32, :47 so GDELT has two minutes to finish publishing the batch.
+//
+// GET /arm      arms the alarm if none is set (idempotent, harmless, no secret needed)
+// GET /status   shows when the next alarm rings
+// anything else 404
+
+import { DurableObject } from 'cloudflare:workers';
 
 export interface Env {
   GITHUB_TOKEN: string;          // fine-grained PAT, "Actions: write" on yuw446/Atlass only (wrangler secret)
   REPO: string;                  // "yuw446/Atlass"
   WORKFLOW: string;              // "tick.yml"
   REF: string;                   // "main"
+  TICKER: DurableObjectNamespace<Ticker>;
+}
+
+const MINUTES = [2, 17, 32, 47];
+
+/** Next firing strictly after `now`, at least 20 s away, on the :02/:17/:32/:47 grid (UTC). */
+export function nextFire(now: Date): Date {
+  const floor = new Date(now); floor.setUTCSeconds(0, 0);
+  for (let h = 0; h <= 1; h++) {
+    for (const m of MINUTES) {
+      const t = new Date(floor); t.setUTCHours(floor.getUTCHours() + h, m, 0, 0);
+      if (t.getTime() - now.getTime() >= 20_000) return t;
+    }
+  }
+  throw new Error('unreachable');
+}
+
+export class Ticker extends DurableObject<Env> {
+  async arm(): Promise<string> {
+    const current = await this.ctx.storage.getAlarm();
+    if (current !== null) return `armed for ${new Date(current).toISOString()}`;
+    const t = nextFire(new Date());
+    await this.ctx.storage.setAlarm(t.getTime());
+    return `armed for ${t.toISOString()}`;
+  }
+
+  async status(): Promise<string> {
+    const current = await this.ctx.storage.getAlarm();
+    return current === null ? 'not armed' : `next ${new Date(current).toISOString()}`;
+  }
+
+  async alarm(): Promise<void> {
+    // Re-arm first: the chain must survive a failed dispatch. Alarms retry on throw, so any exception below is fine.
+    await this.ctx.storage.setAlarm(nextFire(new Date()).getTime());
+    await dispatch(this.env);
+  }
 }
 
 export default {
+  async fetch(req: Request, env: Env): Promise<Response> {
+    const path = new URL(req.url).pathname;
+    const ticker = env.TICKER.get(env.TICKER.idFromName('singleton'));
+    if (path === '/arm') return new Response(await ticker.arm());
+    if (path === '/status') return new Response(await ticker.status());
+    return new Response('cron-only', { status: 404 });
+  },
+
+  // If Cloudflare's cron ever fires, make sure the alarm chain is alive and dispatch as well (the tick is idempotent).
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(dispatch(env));
+    const ticker = env.TICKER.get(env.TICKER.idFromName('singleton'));
+    ctx.waitUntil(ticker.arm().then(() => dispatch(env)));
   },
 };
 
@@ -28,6 +84,6 @@ async function dispatch(env: Env): Promise<void> {
     },
     body: JSON.stringify({ ref: env.REF }),
   });
-  // 204 = queued. Anything else is worth seeing in `wrangler tail`.
+  // 204 = queued. Anything else is worth seeing in the worker's persisted logs.
   console.log(`dispatch ${env.WORKFLOW}@${env.REF}: HTTP ${res.status}${res.status === 204 ? '' : ' ' + (await res.text()).slice(0, 200)}`);
 }

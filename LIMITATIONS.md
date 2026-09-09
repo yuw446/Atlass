@@ -38,10 +38,12 @@ month-end overage stops the cron until the budget resets; the header turns amber
 **Symptom:** the header says "feed is late" for hours; `state.skipped` holds whole ranges of batches.
 **Root cause:** GitHub documents that `schedule` events "can be delayed or dropped during periods of high load."
 On this private repository it ran the tick twice in the first eleven hours instead of 44 times.
-**In place:** `infra/tick-dispatch/`, a Cloudflare Worker cron that calls the workflow-dispatch API every 15 minutes
-(punctual to the minute; the owner deploys it with a repo-scoped token). The workflow's own `schedule:` stays as a
-fallback. When a run does happen after a gap it catches up 32 slots (eight hours); older gaps are recorded in
-`state.skipped` and stay holes in `hours/`. Expected tick age with the dispatcher is under ten minutes at the median.
+**In place:** `infra/tick-dispatch/`, a Cloudflare Worker that calls the workflow-dispatch API every 15 minutes
+from a Durable Object alarm (punctual to the second; the owner deploys it with a repo-scoped token). Cloudflare's
+own Cron Triggers were tried first and never fired on this account, a documented Cloudflare fault in 2026; the cron
+stays configured only as a re-arm path. The workflow's own `schedule:` stays as a second fallback. When a run does
+happen after a gap it catches up 32 slots (eight hours); older gaps are recorded in `state.skipped` and stay holes in
+`hours/`. Expected tick age with the dispatcher is under ten minutes at the median.
 
 ### Pages cache
 Pages serves `data/latest.json` with `cache-control: max-age=600`. The page polls every minute with `cache: 'no-cache'`,
