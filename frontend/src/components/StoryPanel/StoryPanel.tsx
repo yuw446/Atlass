@@ -3,7 +3,8 @@ import { useGlobeStore } from '../../store/globeStore';
 import { LENSES } from '../../../../shared/lenses.ts';
 import { flagEmoji } from '../../../../shared/codes.ts';
 import type { Story } from '../../../../shared/snapshot.ts';
-import { attentionWords, trimTitle, tickClock } from '../../lib/text.ts';
+import { attentionWords, tickClock } from '../../lib/text.ts';
+import { trimTitle } from '../../../../shared/title.ts';
 
 // The shell (slide-in, mobile bottom sheet, skeleton, close) is the old digest panel's; only the body is new.
 

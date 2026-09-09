@@ -10,6 +10,7 @@ npm install                             # frontend workspace only; shared/ and w
 npm test                                # node --test over shared/*.test.ts, worker/*.test.ts, frontend/src/lib/*.test.ts
 npm run tick -- --site ./site           # run one worker tick locally (writes ./site/data; needs network)
 npm run gen:codes                       # regenerate shared/codes.generated.ts from the GeoJSON
+npm run audit -- <batch id | zip>       # print what one GKG batch would lens (docs/precision-check.md)
 npm run dev:frontend                    # Vite dev server at http://localhost:5173/Atlass/ (live feed via proxy)
 npm run build:frontend                  # tsc -b && vite build
 cd frontend && npx eslint .             # lint (react-hooks rules are strict: no setState in effects, no refs in render)
@@ -21,6 +22,7 @@ There is no backend server, no API key, no Redis, no environment variables.
 
 ```
 shared/    lenses.ts (theme sets, scoring)  codes.ts + codes.generated.ts (FIPS→ISO, geoCode)  snapshot.ts (contract + guard)
+           title.ts (trimTitle for the panel; titleTokens + sameStory for the worker's dedupe)
 worker/    tick.ts — the whole pipeline, one entry point, stdlib only            tick.test.ts + fixtures/ (real batch, 200 rows + edge rows)
 frontend/  src/lib (pure, tested): snapshotState, fill, tween, text, densify; hooks useSnapshot, useTween
            src/components/Globe (renderer, container, useGlobeData)  src/components/StoryPanel  src/store/globeStore.ts
@@ -35,7 +37,9 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
 ## Rules that are load-bearing
 
 - **Lenses, not layers.** Four lenses in `shared/lenses.ts`, chosen because the topic is spatial. Do not add a layer
-  registry, a taxonomy, or a heatmap. A lens needs ≥ 2 theme occurrences; `MANMADE_DISASTER_IMPLIED` never counts.
+  registry, a taxonomy, or a heatmap. A lens needs ≥ 2 theme occurrences and ≥ 1 per 200 words; `support` themes only confirm, `veto` themes remove;
+  `MANMADE_DISASTER_IMPLIED` and `NATURAL_DISASTER_ICE`/`ICY`/`CHILL` never count. Entertainment sections and
+  headlines are dropped in the worker (`NON_NEWS_PATH`, `NON_NEWS_TITLE`).
 - **One contract.** `shared/snapshot.ts` is the type and the runtime guard for `latest.json`, used by the worker
   (before writing) and the frontend (before rendering). Change it in one place; bump `schema` for breaking changes.
 - **One country key.** The frontend stamps `properties.code` via `geoCode()` (ISO_A2_EH, then ISO_A2, CN-TW → TW) and

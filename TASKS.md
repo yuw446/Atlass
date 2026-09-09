@@ -3,7 +3,7 @@
 > Last updated: 2026-09-09
 > Stack: Node 24 worker (stdlib) · Vite + React 19 + react-globe.gl + Tailwind v4 · GitHub Actions + Pages
 > Design of record: `~/.gstack/projects/yuw446-Atlass/faye-claude-project-revival-core-e38374-design-20260907-115409.md`
-> Tests: `npm test` (node --test; 50 tests across shared/, worker/, frontend/src/lib). Render paths are checked by `/qa` on the deployed page.
+> Tests: `npm test` (node --test; 65 tests across shared/, worker/, frontend/src/lib). Render paths are checked by `/qa` on the deployed page.
 
 | Symbol | Meaning |
 |--------|---------|
@@ -41,7 +41,11 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
 - ⬜ Send the link to three people and write down what they say first
 
 ## Next, in order (after the link is out)
-- ⬜ **Precision check**: 50 random placed stories from one tick, right country and lens ≥ 40/50, recorded in `docs/precision-check.md`
+- ✅ **Precision check, lens only** (2026-09-09): 221 lensed stories from one batch labelled by headline; 24% → 54% precision at 89% recall
+  after the density rule, support/veto themes and the non-news filter (`docs/precision-check.md`; re-run with `npm run audit -- <batch id>`)
+- ✅ **Syndication dedupe** (2026-09-09): headlines reduced to content words in `shared/title.ts`; 80% of the shorter and half of the longer headline's
+  words shared, within one country, = one story; applied after the domain cap, in the eight-batch ring and in the story ring. Live snapshot had 86 near-duplicate pairs in 843 panel stories; five batches replayed: none.
+- ⬜ **Precision check, country**: 50 placed stories, right country ≥ 40/50, same file
 - ⬜ **Week-one measurements**: Actions minutes used, tick-age median and p90, gh-pages size (same file)
 - ⬜ **Drift warnings**: `warnings[]` in the snapshot when placement or lens ratios deviate > 50% from the 7-day mean; glyph in the header
 - ⬜ **Time scrubber**: replay on `data/hours/` (retained since the first tick); frontend-only
@@ -56,7 +60,7 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
 
 | Issue | Impact | Plan |
 |-------|--------|------|
-| GDELT tagging noise (place vote, lens false positives) | Occasional wrong-country or wrong-lens story | Precision check, then tune the two-occurrence rule or add a three-occurrence threshold |
+| GDELT tagging noise: about half of Conflict stories still off-lens (history, crime, markets); place vote unchecked | Wrong-lens or wrong-country story in the panel | Classes in `LIMITATIONS.md`; label 50 stories for country; `npm run audit` again after a week of data |
 | GitHub `schedule` drops most runs (2 of 44 on night one) | Feed hours stale without the dispatcher | Deploy `infra/tick-dispatch/`; keepalive keeps the fallback alive |
 | Actions budget on Pro is tight (~2,900 of 3,000 min) | Overage or stopped cron at month end | Measure in week one; drop to */20 if needed |
 | "Multiple instances of Three.js" console warning | None visible; react-globe.gl bundles its own three | Align versions when upgrading |

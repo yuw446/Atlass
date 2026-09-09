@@ -4,9 +4,9 @@ import { readFileSync, existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState,
+  unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState, articleFrom,
   updateBaseline, seedBaselines, zOf, attOf, slotsToProcess, batchToIso, run, isSparkOnly, decodeEntities,
-  PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
+  zeroTotals, PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
 } from './tick.ts';
 import { isSnapshot } from '../shared/snapshot.ts';
 
@@ -79,6 +79,50 @@ test('processBatch on the fixture: gate passes, edge rows behave as designed', (
   assert.equal(state.ring.length, 1);
 });
 
+test('articleFrom: publisher sections, review slugs and entertainment headlines are placed but never lensed; word count gates density', () => {
+  const totals = zeroTotals();
+  const row = fixture().rows.find(r => r[4] === 'https://e2.example/e2')!;
+  const at = (url: string, tone = row[15]) => { const c = [...row]; c[4] = url; c[15] = tone; return articleFrom(c, AT, totals); };
+  assert.equal(at('https://e2.example/e2').article?.lens, 1);
+  assert.equal(at('https://e2.example/entertainment/storm-movie').reject, 'section');
+  assert.equal(at('https://e2.example/2026/09/the-storm-review/').reject, 'section');
+  assert.equal(at('https://e2.example/the-storm-review-andrew-garfield/').article?.lens, 1, '"review" mid-slug is left alone (a known ceiling)');
+  assert.equal(at('https://e2.example/news/hurricane-preview-2026').article?.lens, 1, 'preview is not review');
+  const titled = (t: string) => { const c = [...row]; c[26] = `<PAGE_TITLE>${t}</PAGE_TITLE>`; return articleFrom(c, AT, totals); };
+  assert.equal(titled('Storm Season 2 Trailer Drops').reject, 'section');
+  assert.equal(titled('Book review: The Cold War\'s hidden hands').reject, 'section');
+  assert.equal(titled('Council orders review of storm defences').article?.lens, 1, '"review" mid-headline is news');
+  // weather seasons, trailer parks and "films" as a verb are news, not entertainment
+  assert.equal(at('https://e2.example/news/hurricane-season-2026-forecast/').article?.lens, 1);
+  assert.equal(at('https://e2.example/news/trailer-park-fire-kills-3/').article?.lens, 1);
+  assert.equal(titled('Tornado flattens trailer park, 3 dead').article?.lens, 1);
+  assert.equal(titled('Drone films flood damage across Valencia').article?.lens, 1);
+  assert.equal(titled('Wildfire season 2026 could be the worst yet').article?.lens, 1);
+  assert.equal(titled('Rivals season 2 gets huge update').reject, 'section');
+  assert.equal(at('https://e2.example/news/pentagon-review-finds-strike-killed-civilians/').article?.lens, 1);
+  assert.equal(at('https://e2.example/news/trailer-carrying-migrants-found/').article?.lens, 1);
+  assert.equal(at('https://e2.example/video/carrie-official-trailer-all-she-wanted/').reject, 'section');
+  assert.equal(titled('Trailer with 46 dead migrants found in San Antonio').article?.lens, 1);
+  assert.equal(titled('Film shows Russian strike on Kharkiv hospital').article?.lens, 1);
+  assert.equal(titled('April X Trailer: Connor Storrie stars in sci-fi thriller').reject, 'section');
+  assert.equal(titled('Reveals Trailer for Final Season of the crime thriller').reject, 'section');
+  // the headline is cleaned once at the trust boundary: control characters out, 300 characters at most
+  assert.equal(titled('Storm &#27;[31mwarning&#x1b;[0m for the coast').article?.title, 'Storm [31mwarning[0m for the coast');
+  assert.equal(titled('Storm warning '.repeat(40)).article?.title.length, 300);
+  assert.equal(at('https://e2.example/e2', '-2.5,1,3.5,4.5,20,0,2000').reject, 'unlensed', 'two mentions in 2,000 words is an aside');
+  assert.equal(at('https://e2.example/e2', '').article?.lens, 1, 'no word count: density not checked');
+});
+
+test('processBatch: a section-rejected row counts as placed for the gate but never as lensed', () => {
+  const { rows, malformed } = fixture();
+  const base = processBatch(rows, malformed, AT, emptyState());
+  const sectioned = rows.map(r => r[4] === 'https://e2.example/e2' ? Object.assign([...r], { 4: 'https://e2.example/entertainment/e2' }) : r);
+  const res = processBatch(sectioned, malformed, AT, emptyState());
+  assert.equal(res.gate, undefined);
+  assert.equal(res.totals.placed, base.totals.placed);
+  assert.equal(res.totals.lensed, base.totals.lensed - 1);
+});
+
 test('publish gate: malformed ratio, tiny batch, and low placement each skip the batch', () => {
   const { rows } = fixture();
   assert.match(processBatch(rows, 15, AT, emptyState()).gate ?? '', /well-formed/);
@@ -132,13 +176,79 @@ test('applyBatch + snapshotFrom: seeds every polygon country, lens sums to n, st
   assert.equal(snap2.countries.SD.n, 2 * WINDOW);
 });
 
-test('story ring dedupes syndicated headlines across URLs and keeps the strongest signal first', () => {
+test('story ring dedupes syndicated headlines across URLs, site tags and edits, keeping the strongest signal first', () => {
   const state = emptyState(); state.last_batch = ID;
   const mk = (title: string, url: string, score: number) => ({ url, host: 'h.example', title, iso: 'SD', lens: 0, score, tone: null, at: AT });
-  const byCountry = new Map([['SD', [mk('Same wire story', 'https://a.example/1', 3), mk('Same wire story', 'https://b.example/2', 3), mk('Weaker story', 'https://c.example/3', 9)]]]);
-  applyBatch(state, { byCountry, sparks: [], totals: { articles: 3, placed: 3, lensed: 3, capped: 0, unmapped: 0, dropped_urls: 0, dupes: 0, malformed: 0 } }, AT);
+  const byCountry = new Map([['SD', [
+    mk('Floods cut the coast road for a third day', 'https://a.example/1', 3),
+    mk('Floods cut the coast road for a third day | Coast Times', 'https://b.example/2', 3),
+    mk('Floods cut coast road for third day, council says', 'https://d.example/4', 5),
+    mk('Same wire story', 'https://e.example/5', 3), mk('Same wire story', 'https://f.example/6', 3),
+    mk('Weaker story', 'https://c.example/3', 9)]]]);
+  applyBatch(state, { byCountry, sparks: [], totals: zeroTotals() }, AT);
   const stories = state.countries.SD.stories;
-  assert.deepEqual(stories.map(s => s.t), ['Weaker story', 'Same wire story']);
+  assert.deepEqual(stories.map(s => s.t), ['Weaker story', 'Floods cut coast road for third day, council says', 'Same wire story']);
+});
+
+test('processBatch drops syndicated copies in the batch and across the ring, keeps the copy with a picture, counts them as dupes', () => {
+  const { rows, malformed } = fixture();
+  const e2 = rows.find(r => r[4] === 'https://e2.example/e2')!;
+  const copy = (url: string, title: string, image = '') => { const c = [...e2]; c[4] = url; c[18] = image; c[26] = `<PAGE_TITLE>${title}</PAGE_TITLE>`; return c; };
+  const withCopies = [...rows,
+    copy('https://x.example/1', 'Hawaii residents told to expect tropical storm | Island Times', 'https://x.example/pic.jpg'),
+    copy('https://y.example/2', 'Hawaii residents told to expect a tropical storm tonight, officials say')];
+  const state = emptyState();
+  const base = processBatch(rows, malformed, AT, emptyState());
+  const res = processBatch(withCopies, malformed, AT, state);
+  const us = (res.byCountry.get('US') ?? []).filter(a => /Hawaii residents/.test(a.title));
+  assert.equal(us.length, 1, 'one story from three copies');
+  assert.equal(us[0].image, 'https://x.example/pic.jpg', 'the copy with a picture survives');
+  assert.equal(res.totals.dupes, base.totals.dupes + 2);
+  // next batch: every fixture row under a fresh URL plus one more copy; the copy is a dupe by the ring, not by URL
+  const later = processBatch([...rows.map(r => Object.assign([...r], { 4: r[4] + '?v=2' })), copy('https://z.example/3', 'Hawaii residents told to expect tropical storm - Pacific Daily')], malformed, AT, state);
+  assert.equal((later.byCountry.get('US') ?? []).filter(a => /Hawaii residents/.test(a.title)).length, 0, 'the same headline two batches later is a dupe by the ring');
+  assert.ok(later.totals.dupes > 0);
+});
+
+test('processBatch: dedupe is per country, the first picture wins, and headlines with no content words never merge', () => {
+  const { rows, malformed } = fixture();
+  const e2 = rows.find(r => r[4] === 'https://e2.example/e2')!;
+  const no = rows.find(r => /Norway evacuation/.test(r[26]))!;
+  const mk = (url: string, title: string, locs = e2[10], image = '') => { const c = [...e2]; c[3] = new URL(url).hostname; c[4] = url; c[10] = locs; c[18] = image; c[26] = `<PAGE_TITLE>${title}</PAGE_TITLE>`; return c; };
+  const res = processBatch([...rows,
+    mk('https://p.example/1', 'Magnitude 5.2 earthquake strikes Hawaii'),
+    mk('https://q.example/2', 'Magnitude 5.2 earthquake strikes Norway', no[10]),
+    mk('https://r.example/3', 'Storm surge floods the harbour road overnight', e2[10], 'https://r.example/first.jpg'),
+    mk('https://s.example/4', 'Storm surge floods the harbour road overnight | Coast Times', e2[10], 'https://s.example/second.jpg'),
+    mk('https://t.example/5', 'A to the'), mk('https://u.example/6', 'It is')], malformed, AT, emptyState());
+  const us = res.byCountry.get('US') ?? [];
+  assert.ok(us.some(a => /strikes Hawaii/.test(a.title)));
+  assert.ok((res.byCountry.get('NO') ?? []).some(a => /strikes Norway/.test(a.title)), 'a templated headline in another country is its own story');
+  assert.equal(us.filter(a => /Storm surge/.test(a.title)).map(a => a.image).join(), 'https://r.example/first.jpg', 'the first copy with a picture keeps it');
+  assert.equal(us.filter(a => /^(A to the|It is)$/.test(a.title)).length, 2, 'empty token sets are never twins');
+});
+
+test('processBatch: the domain cap runs before the syndication merge, so a story first seen on a capped aggregator survives elsewhere', () => {
+  const { rows, malformed } = fixture();
+  const e2 = rows.find(r => r[4] === 'https://e2.example/e2')!;
+  const titles = ['Storm surge floods the harbour road overnight', 'Wildfire closes the mountain pass for a second day', 'Landslide buries a farm after heavy rain',
+    'Hurricane warning issued for the northern coast', 'Flash flood sweeps cars from the valley highway', 'Tornado tears roofs off homes in the county seat',
+    'Drought empties the reservoir that supplies the city', 'Blizzard strands hundreds on the interstate'];
+  const mk = (host: string, n: number) => { const c = [...e2]; c[3] = host; c[4] = `https://${host}/${n}`; c[26] = `<PAGE_TITLE>${titles[n]}</PAGE_TITLE>`; return c; };
+  const batch = [...rows];
+  for (let n = 0; n < 8; n++) batch.push(mk('aggregator.example', n));        // eight stories, all first seen here
+  for (let n = 0; n < 8; n++) batch.push(mk(`paper${n}.example`, n));         // each story again on its own host
+  const res = processBatch(batch, malformed, AT, emptyState());
+  const us = (res.byCountry.get('US') ?? []).filter(a => titles.includes(a.title));
+  assert.equal(us.length, 8, 'no story is lost to the cap');
+  assert.equal(us.filter(a => a.host === 'aggregator.example').length, DOMAIN_CAP);
+});
+
+test('story ring: headlines in a script without spaces never collapse into one story', () => {
+  const state = emptyState(); state.last_batch = ID;
+  const mk = (title: string, url: string) => ({ url, host: 'h.example', title, iso: 'JP', lens: 1, score: 3, tone: null, at: AT });
+  applyBatch(state, { byCountry: new Map([['JP', [mk('東京で地震', 'https://a.example/1'), mk('北海道で洪水', 'https://b.example/2')]]]), sparks: [], totals: zeroTotals() }, AT);
+  assert.equal(state.countries.JP.stories.length, 2);
 });
 
 // ---------- baselines ----------
