@@ -7,7 +7,7 @@
   "scripts": {
     "dev:frontend": "npm run dev --workspace=frontend",
     "build:frontend": "npm run build --workspace=frontend",
-    "test": "node --experimental-strip-types --test \"shared/*.test.ts\" \"worker/*.test.ts\"",
+    "test": "node --experimental-strip-types --test \"shared/*.test.ts\" \"worker/*.test.ts\" \"frontend/src/lib/*.test.ts\"",
     "tick": "node --experimental-strip-types worker/tick.ts",
     "gen:codes": "node --experimental-strip-types scripts/gen-codes.ts"
   },

@@ -1,130 +1,74 @@
 # Atlas — Known Limitations
 
-> Last updated: 2026-03-16
+> Last updated: 2026-09-09
 
-This document records confirmed technical limitations, root causes, and the status of any workarounds. It is distinct from TASKS.md (which tracks work to be done) — items here are limitations that are either accepted, deferred, or require external dependencies to resolve.
+Confirmed limitations, their root causes, and what is in place. `TASKS.md` tracks work; this file records what is
+accepted, deferred, or waiting on something external.
 
----
+## Data
 
-## Globe Rendering
+### GDELT tagging is automatic and sometimes wrong
+**Symptom:** a story lands on the wrong country (an Arlington Cemetery story on Iraq) or under the wrong lens (a
+politics story tagged `NATURAL_DISASTER`).
+**Root cause:** GKG themes and locations come from keyword and gazetteer matching over the article text.
+**In place:** primary country is the most-mentioned mapped country, not the first-mentioned; a lens needs at least
+two theme occurrences; `MANMADE_DISASTER_IMPLIED`, `KILL`, `GENERAL_HEALTH`, `MEDICAL` are excluded; a domain cap
+stops aggregators dominating. A manual precision check over 50 stories is the first follow-up task.
+
+### English-language sources only
+GDELT's main GKG feed is English. A separate translated feed covering 65 languages exists and is a later addition.
+The legend says "English-language media".
+
+### Fifteen-minute batches, two-hour window
+Fill colour, lens mix, and the panel's stories aggregate the last 8 batches; sparks are the current batch. A single
+batch holds one or two lensed stories for a typical country, which is why the window exists.
+
+### Publish race and clock drift in the feed
+`lastupdate.txt` is written before the GKG file finishes uploading, so a run minutes after the quarter hour can see a
+404 for the latest file; the worker retries four times 30 seconds apart, then leaves it for the next cron. Batch
+labels can run up to ten minutes ahead of wall-clock; the page clamps "last tick" at zero minutes.
+
+## Hosting
+
+### Private repository on GitHub Pro
+Pages and the Actions budget depend on the paid plan. The cron uses about 2,900 of 3,000 minutes a month. A
+month-end overage stops the cron until the budget resets; the header turns amber ("feed is late").
+
+### Cron drift and schedule registration
+GitHub runs `*/15` schedules 5 to 30 minutes late under load, and a newly added schedule may not fire until another
+push lands on `main`. `keepalive.yml` pushes an empty commit weekly. Expected tick age is about 20 minutes at the median.
+
+### Pages cache
+Pages serves `data/latest.json` with `cache-control: max-age=600`. The page polls every minute with `cache: 'no-cache'`,
+so a fresh tick shows within roughly ten minutes of publishing.
+
+## Rendering
 
 ### Large polygon tessellation artifacts (Greenland, Russia, Canada, Antarctica)
+Globe.gl draws polygon edges as chords through the sphere. `densifyRing` (`frontend/src/lib/densify.ts`) inserts
+points on edges longer than 3°. Greenland still shows minor artifacts at some zoom levels. A winding-order fix was
+tried in the first attempt and reverted: the shoelace formula is unreliable for polar and antimeridian polygons.
 
-**Symptom:** Country fill has zigzag edges, triangular gaps, or regions that appear to extend beyond the actual border.
+### Polygon border width is 1 px
+Globe.gl's `polygonStrokeColor` has no width; WebGL ignores `linewidth > 1`. Bright stroke colours compensate.
 
-**Root cause:** Globe.gl tessellates GeoJSON polygon edges as straight line segments in 3D space. For large or high-latitude polygons, long edges between vertices become chords that cut through the interior of the sphere rather than following the surface, producing visible artifacts.
+### Sparks are not interactive
+`pointsMerge: true` draws all sparks in one geometry for phone performance; there is no per-spark hover or click.
+Stories are read through the country panel.
 
-**Workaround in place:** `densifyRing()` in `useGlobeData.ts` inserts intermediate vertices along any edge longer than 3° so the tessellator approximates the curved surface. This eliminates the worst artifacts but does not fully correct all cases — Greenland in particular still shows minor imperfections at some zoom levels due to the extreme latitude of its northern coastline.
+### Colour changes are tweened by the app, not the library
+three-globe's `polygonsTransitionDuration` animates altitude only. `useTweenedColors` interpolates in LAB at 30 fps
+for 1.5 s and snaps under `prefers-reduced-motion`.
 
-**What was tried and failed:**
-- Polygon winding-order correction using the shoelace signed-area formula. The formula is unreliable for geographic polygons: it produces incorrect sign for large-extent shapes, antimeridian-crossing polygons, and polar regions. Applying it to all features caused every polygon to fill its complement area (the entire globe except the country), making the globe fully red and extremely slow. Reverted.
+### Territories without a code are not drawn
+Northern Cyprus and Somaliland have no ISO code in Natural Earth 110m and receive no fill. Feed countries with no
+polygon (Singapore, Hong Kong, Bahrain, Malta, the Maldives, about 30 more) appear as sparks only.
 
-**Proper fix (not yet implemented):** Densification threshold could be reduced further (e.g., 1°) at the cost of significantly more vertices and slower rendering. Alternatively, switching to a higher-resolution GeoJSON source (Natural Earth 10m vs current 50m or 110m) would reduce the edge length of problematic polygons without code changes. A spherical geometry library (e.g., `@turf/great-circle`) could split long edges along great-circle arcs rather than straight-line interpolation.
+### Hidden-tab layout
+In embedded or background tabs the globe container can measure 0×0 at mount; the container re-measures on mount and
+on window resize. Real browsers lay out immediately.
 
----
-
-### Polygon border width not configurable
-
-**Symptom:** Country sea-boundary / coastline strokes are always 1px regardless of styling.
-
-**Root cause:** Globe.gl's `polygonStrokeColor` prop does not expose a width control. The underlying Three.js `LineSegments` renderer on WebGL ignores `linewidth > 1` on most platforms (WebGL 1 limitation).
-
-**Workaround in place:** Bright colors (`#A8DCFF` selected, `#3FA8E0` hover, `rgba(80,150,220,0.45)` default) compensate visually for the thin stroke.
-
-**Proper fix:** Implement country borders as a separate `arcsData` layer using fat-line geometry, or upgrade to a Globe.gl version that supports polygon stroke width if one becomes available.
-
----
-
-### Taiwan GeoJSON code mismatch
-
-**Symptom:** Taiwan's polygon uses `ISO_A2: "CN-TW"` in the Natural Earth GeoJSON, which differs from the standard `"TW"` used everywhere else in Atlas.
-
-**Root cause:** Natural Earth's political classification encodes Taiwan as a subdivision of China in its ISO field.
-
-**Workaround in place:** `hardcoded.ts` uses `code: "CN-TW"` for polygon enrichment matching. The backend digest route has `GEO_ALIASES: { "CN-TW": "TW" }` to resolve it before disk lookup.
-
-**Status:** Accepted — changing the underlying GeoJSON would require patching the source file and revalidating all polygon codes.
-
----
-
-## Data Pipeline
-
-### Perplexity does not reliably provide image URLs
-
-**Symptom:** Event cards in the digest panel always show the "IMAGE PENDING" placeholder; `image_url` is never populated.
-
-**Root cause:** Perplexity's web search results expose article page URLs, not direct CDN image URLs. Obtaining a direct image URL requires inspecting the page source or right-clicking the image within the Perplexity session — a manual step that is easy to skip.
-
-**Workaround in place:** `INSTRUCTIONS.md` now explicitly describes how to find CDN image URLs and mandates their inclusion. This relies on Perplexity following the spec, which is not guaranteed.
-
-**Proper fix (Phase 3):** GDELT `SOURCEURL` scraping — fetch each event's source URL, extract the Open Graph `og:image` meta tag, and store that as `image_url` during ingestion.
-
----
-
-### Perplexity fabricates source URLs
-
-**Symptom:** Links in the digest panel return 404 or load unrelated pages.
-
-**Root cause:** Perplexity constructs plausible-looking article paths (e.g., `reuters.com/world/invented-path-2026/`) rather than copying the actual citation URL from its search results.
-
-**Workaround in place:** `INSTRUCTIONS.md` includes a prominent warning section explicitly prohibiting constructed URLs and requiring that only real citation URLs are used. Broken links are preferable to fabricated ones, so the spec instructs omitting `source_url` when uncertain.
-
-**Status:** Data-quality issue dependent on Perplexity compliance. No automated validation possible without making live HTTP requests to all URLs at ingest time (feasible but not yet implemented).
-
----
-
-### `/api/globe-data` serves hardcoded data only
-
-**Symptom:** The globe's `in_conflict` and `stability_score` values do not update when new Perplexity packages are ingested — they always reflect the values in `frontend/src/data/hardcoded.ts`.
-
-**Root cause:** The backend `/api/globe-data` route serves the same hardcoded dataset as the frontend. The live merge of `normalized/*.json` into the globe data API has not been implemented.
-
-**Status:** Phase 2 remainder task. The digest panel does read live Perplexity data correctly (via `/api/digest`). Only the globe polygon fill colors and conflict markers are affected.
-
----
-
-### Relationship arc countries missing from frontend dataset
-
-**Symptom:** Countries referenced in Perplexity `relationships[]` data (e.g., ER, TD, AE) have no hardcoded entry, so they receive no polygon enrichment and their arcs cannot be visualised from the frontend.
-
-**Status:** Phase 2 remainder task — add missing countries to `hardcoded.ts`.
-
----
-
-### No concurrency protection on the ingestion pipeline
-
-**Symptom:** If `POST /api/ingest/run` is called while a previous run is still processing, both runs operate on the same inbox files simultaneously, potentially causing duplicate writes or partial normalized output.
-
-**Status:** Phase 2 remainder task — BullMQ job queue to serialise runs.
-
----
-
-## Backend Infrastructure
-
-### Redis not available in local development
-
-**Symptom:** All cache writes silently fail; every request reads from disk or calls the Claude API directly. No error is surfaced to the user.
-
-**Root cause:** Redis is not installed or running locally by default.
-
-**Workaround in place:** The Redis client is initialised with `lazyConnect: true`, a 5-retry cap, and `enableOfflineQueue: false`. All cache operations are wrapped in try/catch with non-fatal handling. The system degrades gracefully to disk reads.
-
-**To enable locally:** `brew install redis && redis-server` or point `REDIS_URL` in `backend/.env` to a Railway/Upstash instance.
-
----
-
-## Frontend
-
-### Globe.gl bundle size
-
-**Symptom:** Initial page load is slow; `react-globe.gl` + Three.js contribute approximately 1.9 MB to the bundle.
-
-**Status:** Phase 5 task — lazy-load the globe component so the initial render is not blocked by the Three.js payload.
-
----
-
-### No WebGL fallback
-
-**Symptom:** On devices without WebGL support (some mobile browsers, older hardware), the globe does not render and the page shows a blank canvas.
-
-**Status:** Phase 5 task — canvas 2D fallback for low-end devices.
+## Resolved from the first attempt
+The Perplexity inbox pipeline, the Claude fallback that invented events, the fabricated source URLs, the hardcoded
+country data, the `/api/globe-data` route, Redis, and the BullMQ queue are gone. The Taiwan `CN-TW` alias and the
+France/Norway `-99` codes are handled by `geoCode()`.

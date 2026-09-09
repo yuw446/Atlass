@@ -1,136 +1,73 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+Guidance for Claude Code when working in this repository.
 
-## Commands
+## Commands (from the repo root)
 
-### Development (from repo root)
 ```bash
-npm run dev              # start frontend (port 5173) + backend (port 3001) concurrently
-npm run dev:frontend     # frontend only
-npm run dev:backend      # backend only
-npm run build:frontend   # tsc + vite build
+nvm use                                 # Node 24; type stripping runs .ts directly, no build step for worker/shared
+npm install                             # frontend workspace only; shared/ and worker/ have no dependencies
+npm test                                # node --test over shared/*.test.ts, worker/*.test.ts, frontend/src/lib/*.test.ts
+npm run tick -- --site ./site           # run one worker tick locally (writes ./site/data; needs network)
+npm run gen:codes                       # regenerate shared/codes.generated.ts from the GeoJSON
+npm run dev:frontend                    # Vite dev server at http://localhost:5173/Atlass/ (live feed via proxy)
+npm run build:frontend                  # tsc -b && vite build
+cd frontend && npx eslint .             # lint (react-hooks rules are strict: no setState in effects, no refs in render)
 ```
 
-### Frontend (from `frontend/`)
-```bash
-npm run dev      # vite dev server
-npm run build    # tsc -b && vite build
-npm run lint     # eslint
-npm run preview  # preview production build
-```
-
-### Backend (from `backend/`)
-```bash
-npm run dev      # tsx watch src/server.ts
-npm run build    # tsc
-npm run start    # node dist/server.js
-```
-
-### Ingest (trigger Perplexity pipeline manually)
-```bash
-# Drop JSON files into backend/data/inbox/ then:
-curl -X POST http://localhost:3001/api/ingest/run
-curl http://localhost:3001/api/ingest/status
-```
+There is no backend server, no API key, no Redis, no environment variables.
 
 ## Architecture
 
-### Monorepo layout
 ```
-Atlass/
-├── frontend/          # Vite + React 19 + TypeScript + Tailwind v4
-├── backend/           # Express 5 + TypeScript + Anthropic SDK
-├── TASKS.md           # Phase roadmap
-└── package.json       # npm workspaces root
-```
-
-### Frontend data flow
-1. `useGlobeData` hook fetches `/public/data/countries.geojson` and enriches features with `HARDCODED_COUNTRIES` from `src/data/hardcoded.ts`
-2. Enriched GeoJSON features + `HARDCODED_ARCS` are stored in **Zustand** (`globeStore.ts`)
-3. `GlobeRenderer` reads from the store; polygon fill color is driven by `ConflictStatus` via `colorUtils.ts` lookup tables
-4. Clicking a country opens `DigestPanel`, which POSTs to `/api/digest`
-5. Vite proxy forwards `/api/*` → `http://localhost:3001`
-
-### Backend data flow
-```
-backend/data/inbox/        ← Perplexity drops JSON packages here
-         ↓ POST /api/ingest/run
-backend/data/normalized/   ← {ISO2}.json per country (primary store)
-         ↓
-Redis atlas:perplexity:country:{ISO2}  ← 24h cache (best-effort)
-         ↓
-GET /api/digest  →  reads normalized disk data first, falls back to Claude API
+shared/    lenses.ts (theme sets, scoring)  codes.ts + codes.generated.ts (FIPS→ISO, geoCode)  snapshot.ts (contract + guard)
+worker/    tick.ts — the whole pipeline, one entry point, stdlib only            tick.test.ts + fixtures/ (real batch, 200 rows + edge rows)
+frontend/  src/lib (pure, tested): snapshotState, fill, tween, text, densify; hooks useSnapshot, useTween
+           src/components/Globe (renderer, container, useGlobeData)  src/components/StoryPanel  src/store/globeStore.ts
+.github/   tick.yml (*/15, no npm ci, tests gate the tick, force-push gh-pages)  pages.yml (build + publish site)  keepalive.yml
 ```
 
-### Key design patterns
+**Data flow.** `lastupdate.txt` → GKG zip → `worker/tick.ts` → `data/latest.json`, `data/hours/`, `data/state.json`
+on the `gh-pages` branch, which also holds the built site. Pages serves both from the same origin. The page polls
+`./data/latest.json` every minute. The design of record (approved and eng-reviewed, with the amendments index) is at
+`~/.gstack/projects/yuw446-Atlass/faye-claude-project-revival-core-e38374-design-20260907-115409.md`.
 
-**Two-source digest priority** (`routes/digest.ts`):
-Perplexity disk data → Claude API fallback → static fallback message. Redis is checked first in all cases.
+## Rules that are load-bearing
 
-**Two-phase Perplexity validation** (`lib/perplexity/validate.ts`):
-Phase 1 rescues/coerces (fuzzy country codes, intensity clamping, boolean coercion). Phase 2 applies strict Zod schemas. Invalid files → `data/failed/`; valid files → `data/processed/`.
+- **Lenses, not layers.** Four lenses in `shared/lenses.ts`, chosen because the topic is spatial. Do not add a layer
+  registry, a taxonomy, or a heatmap. A lens needs ≥ 2 theme occurrences; `MANMADE_DISASTER_IMPLIED` never counts.
+- **One contract.** `shared/snapshot.ts` is the type and the runtime guard for `latest.json`, used by the worker
+  (before writing) and the frontend (before rendering). Change it in one place; bump `schema` for breaking changes.
+- **One country key.** The frontend stamps `properties.code` via `geoCode()` (ISO_A2_EH, then ISO_A2, CN-TW → TW) and
+  reads nothing else. GDELT codes are FIPS; `fipsToIso()` maps them through the table generated from the GeoJSON.
+- **`features` identity never changes after load.** The colour tween re-reads the accessor 30 times a second; a new
+  `polygonsData` array would re-tessellate 175 polygons per frame.
+- **three-globe does not tween colour.** `useTweenedColors` does, app-side, in LAB, reduced-motion aware.
+- **Sparks use `pointsMerge`.** One draw call, no per-point interaction, by design.
+- **Trust boundary is the worker.** URLs must parse as http(s) and be ≤ 2 KB; images https only; headlines are
+  entity-decoded there. The panel adds `noopener noreferrer`, `referrerPolicy="no-referrer"`, lazy images with a fallback.
+- **The worker must never stall.** A 404 on a non-latest slot is skipped and recorded; a 404 on the latest slot is
+  GDELT's publish race, retried 4×30 s then left for the next cron; any other failure exits 1 and the next cron retries.
+- **gh-pages is one commit.** Both workflows amend and force-push under the `tick` concurrency group. `hours/` is the history.
 
-**Globe polygon enrichment** (`useGlobeData.ts`):
-GeoJSON features for 195+ countries are enriched with hardcoded data (stability, conflict status, centroid). Countries not in `hardcoded.ts` render as peaceful defaults. A `densifyRing()` pass adds intermediate points on edges > 3° to prevent Globe.gl tessellation artifacts at high latitudes (Greenland, Russia).
+## Gotchas
 
-**HMR invalidation** (`useGlobeData.ts`):
-`import.meta.hot.accept('../../data/hardcoded', () => import.meta.hot!.invalidate())` forces a full page reload when `hardcoded.ts` changes, preventing stale-closure bugs in the enrichment effect.
+- GDELT publishes `lastupdate.txt` before the GKG upload finishes, and batch labels can run up to ten minutes ahead of
+  wall-clock. The frontend clamps age at zero.
+- The repository is private on GitHub Pro. Pages works on private repos; the cron uses about 2,900 of 3,000 Actions
+  minutes a month at one minute per tick. The tick job installs nothing so it stays fast.
+- Scheduled workflows only fire from `main` and are disabled after 60 days without a commit to `main`; `keepalive.yml`
+  pushes an empty commit weekly. A brand-new schedule may not register until the next push to `main`.
+- Natural Earth 110m has `ISO_A2 = -99` for France, Norway, Kosovo; `FIPS_10 = -99` for Norway, Israel, Palestine,
+  South Sudan (overrides live in `scripts/gen-codes.ts`). Northern Cyprus and Somaliland have no code and are not drawn.
+- Node 22.14 needs `--experimental-strip-types` (the npm scripts pass it); Node 24 does not. Node's `fetch` ignores
+  proxy environment variables.
+- The lazily loaded globe container measures itself on mount and on window resize because a hidden tab's
+  ResizeObserver can report 0×0 and never fire again.
 
-**Globe auto-rotate** (`globeStore.ts`):
-`selectCountry()` sets `autoRotate: false`; `closePanel()` sets it back to `true`. No mouse enter/leave handlers on the globe div — they fired on panel-open resize and caused a stale-closure re-enable bug.
+## Keeping things in sync
 
-**Taiwan GeoJSON alias** (`routes/digest.ts`):
-GeoJSON uses `ISO_A2: "CN-TW"` for Taiwan; normalized data uses `TW`. The `GEO_ALIASES` map in the digest route resolves this before disk lookup.
-
-### ConflictStatus taxonomy
-Six values drive both globe fill colors and the digest panel status badge:
-```
-active_conflict | military_operation | impacted | civil_unrest | ceasefire | peaceful
-```
-Color maps live in `frontend/src/components/Globe/colorUtils.ts` (`STATUS_FILLS`, `STATUS_HOVER_FILLS`, `STATUS_SELECTED_FILLS`). The panel maps them in `DigestPanel.tsx` (`STATUS_DISPLAY`). The globe and panel always read `conflict_status` from `countryMap` (derived from `hardcoded.ts`), not from the API response.
-
-### Adding a new country
-1. Add entry to `HARDCODED_COUNTRIES` in `frontend/src/data/hardcoded.ts` — include `code` (ISO_A2 matching GeoJSON), `centroid`, `conflict_status`, `unrest_level`, `in_conflict`, `stability_score`, `flag_color`, `flag`
-2. If the country needs arcs, add to `HARDCODED_ARCS`
-3. A matching GeoJSON polygon must exist in `/public/data/countries.geojson` — missing codes log a console warning
-
-### Perplexity data packages
-Format documented in `backend/perplexity-spec/INSTRUCTIONS.md`. Key rules:
-- Drop `*.json` files in `backend/data/inbox/`
-- Use **real citation URLs only** — never construct/guess `source_url`
-- Use **direct CDN image URLs** for `image_url` (`.jpg/.png/.webp`), or omit
-- `conflict_status` field: use one of the 6 `ConflictStatus` values
-
-**Keep the spec in sync.** Whenever the ingestion schema changes — new fields added to `EventCard`, `CountryEntry`, or `Relationship`; new `event_type` or `conflict_status` values; changed validation rules — update **both**:
-1. `backend/perplexity-spec/INSTRUCTIONS.md` — human-readable spec Perplexity reads
-2. `backend/perplexity-spec/example-package.json` — concrete example that should always reflect valid current format
-
-The spec is the contract between Atlas and Perplexity. An out-of-date spec causes Perplexity to send stale formats that get rescued/coerced by the fuzzy validator rather than arriving correctly structured.
-
-### Keeping LIMITATIONS.md current
-`LIMITATIONS.md` documents confirmed technical limitations — things that are accepted, deferred, or blocked on external dependencies. Update it whenever:
-- A bug investigation reveals a root cause that can't be fixed cleanly right now
-- A fix attempt fails (document *what was tried and why it didn't work* — this prevents re-attempting the same dead end)
-- A limitation is resolved (remove or mark it resolved with a note on what fixed it)
-- A new external constraint is discovered (API limitation, library restriction, WebGL constraint, etc.)
-
-Do not duplicate items already in TASKS.md unless the limitation needs a root-cause explanation that a task entry can't hold.
-
-### Keeping TASKS.md current
-`TASKS.md` is the source of truth for project progress. Update it at the end of every work session:
-- Mark completed items `✅`
-- Move items from `⬜` to `🔄` when partially done
-- Add new issues/debt to the **Known Issues / Technical Debt** table
-- Update the `> Last updated:` date at the top
-
-Do not let TASKS.md drift — it is used to orient future Claude sessions and plan the next phase.
-
-### Environment variables
-```
-# backend/.env
-ANTHROPIC_API_KEY=...        # required for Claude fallback in /api/digest
-REDIS_URL=redis://...        # optional; system degrades gracefully without Redis
-CORS_ORIGIN=http://localhost:5173
-PORT=3001
-```
+- Changing `frontend/public/data/countries.geojson`: run `npm run gen:codes` and commit the output; `pages.yml` fails otherwise.
+- Changing the snapshot shape: update `shared/snapshot.ts`, the worker, the panel, and the fixture test together.
+- `TASKS.md` is the roadmap; update it at the end of a work session. `LIMITATIONS.md` records what is known to be
+  imperfect and why; add to it when an investigation ends without a fix.

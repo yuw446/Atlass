@@ -1,0 +1,70 @@
+# Atlas site: build the frontend and publish it into the gh-pages branch next to the data the tick writes.
+# Shares the "tick" concurrency group so the two writers of gh-pages never race. The branch stays one commit.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+      - 'shared/**'
+      - 'scripts/**'
+      - 'package.json'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tick
+  cancel-in-progress: false
+
+jobs:
+  pages:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - run: npm ci
+
+      - name: Country codes must be regenerated when the GeoJSON changes
+        run: node scripts/gen-codes.ts --check
+
+      - name: Tests (shared, worker, frontend lib)
+        run: npm test
+
+      - name: Build
+        run: npm run build --workspace=frontend
+
+      - name: Check out gh-pages (or create it)
+        run: |
+          git config --global user.name "atlas-pages"
+          git config --global user.email "atlas-pages@users.noreply.github.com"
+          if git ls-remote --exit-code --heads origin gh-pages >/dev/null 2>&1; then
+            git fetch --depth 1 origin gh-pages
+            git worktree add site FETCH_HEAD
+          else
+            git worktree add --orphan site
+            mkdir -p site/data
+          fi
+
+      - name: Copy the built site in, keeping data/
+        run: |
+          rsync -a --delete --exclude data --exclude .nojekyll frontend/dist/ site/
+          touch site/.nojekyll
+
+      - name: Publish (one commit, force-pushed)
+        run: |
+          cd site
+          git add -A
+          if git diff --cached --quiet; then echo "nothing to publish"; exit 0; fi
+          git checkout --quiet --orphan gh-pages-next
+          git commit --quiet -m "atlas site + data $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push --force origin HEAD:gh-pages

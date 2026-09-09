@@ -1,53 +1,52 @@
-# Atlass
+# Atlas
 
-An interactive 3D globe for **geospatial conflict intelligence**. It visualises
-global conflict zones and geopolitical stability on a Three.js globe and generates
-a per-country intelligence digest on demand: click a country, get a short briefing
-of what's happening there, assembled from a curated dataset and an LLM analyst.
-Conflict status drives the globe's colours and per-country markers.
+**The news, by place.** News is organised by topic; Atlas re-projects it onto the globe so the people and the
+environment behind a story stay in frame. Every 15 minutes about a thousand stories from GDELT's Global Knowledge
+Graph land on the country they are about. Four lenses, chosen because those topics are spatial by nature: conflict,
+disaster and climate, unrest, displacement. Click a country to read what is being written about it right now.
 
-## Stack
+Live: **https://yuw446.github.io/Atlass/** · data: `https://yuw446.github.io/Atlass/data/latest.json`
 
-- **Frontend** (`frontend/`) — React 19 + Vite, [`react-globe.gl`](https://github.com/vasturiano/react-globe.gl) (Three.js), Tailwind v4, Zustand for state.
-- **Backend** (`backend/`) — Express 5 + TypeScript, the Anthropic SDK (Claude) for digests, Zod for validation, Redis (best-effort) for caching.
-- npm-workspaces monorepo.
+## How it works
 
-## Quick start
+```
+GDELT GKG (every 15 min)  →  worker/tick.ts on a GitHub Actions cron
+                          →  gh-pages branch: data/latest.json, data/hours/, data/state.json  (one commit, always)
+                          →  GitHub Pages serves the site and the data from the same origin
+frontend (Vite + React + Globe.gl) polls data/latest.json every minute and paints the globe
+```
+
+- **Fill colour** is the country's dominant lens over the last two hours; **brightness** is how unusual its
+  attention is against its own one-week baseline, so a small country can outshine a large one.
+- **Sparks** are the current batch's stories at their coordinates.
+- **The panel** shows real headlines, images, sources and times from the feed. No language model anywhere.
+- Media attention, not ground truth; English-language sources; automatic tagging that is sometimes wrong. The page says so.
+
+## Run it
 
 ```bash
 nvm use                           # Node 24 (.nvmrc); the worker runs TypeScript directly
 npm install                       # installs the frontend workspace
-npm test                          # shared/ and worker/ tests, no dependencies needed
-
-# the backend needs an Anthropic key for live digests
-# (without one it returns a clear placeholder, the app still runs):
-echo "ANTHROPIC_API_KEY=sk-ant-..." > backend/.env
-
-npm run dev                       # frontend + backend together (concurrently)
-# or individually: npm run dev:frontend  /  npm run dev:backend
+npm test                          # shared/, worker/, frontend/src/lib tests, no dependencies needed
+npm run dev:frontend              # http://localhost:5173/Atlass/ — reads the live feed from Pages via a dev proxy
+npm run tick -- --site ./site     # run the worker once into ./site/data (needs network)
+npm run gen:codes                 # regenerate shared/codes.generated.ts after changing the GeoJSON
 ```
 
-The frontend opens on Vite's dev port; the backend serves `/api`. Backend env:
-`ANTHROPIC_API_KEY` (digests), `PORT`, `CORS_ORIGIN`, optional `REDIS_URL`.
+## Layout
 
-## How it works
+```
+shared/        lenses, country codes (generated from the GeoJSON), the snapshot contract    ← used by both sides
+worker/        tick.ts: one GDELT batch in, three files out; tests against a real fixture batch
+frontend/      Vite + React 19 + react-globe.gl + Tailwind v4; frontend/src/lib is pure and tested
+scripts/       gen-codes.ts
+.github/       tick.yml (*/15), pages.yml (site build on push to main), keepalive.yml (weekly)
+docs/history/  the original brief and the first attempt's planning notes
+```
 
-1. The globe loads world GeoJSON polygons and enriches them with a curated dataset
-   of ~50 countries (`frontend/src/data/hardcoded.ts`: stability, conflict status,
-   centroid). Countries not in the set render as peaceful defaults.
-2. Each country's **conflict status** (a six-tier taxonomy) drives the globe fill
-   colour and a ⚔ centroid marker.
-3. Clicking a country opens the **digest panel**, which `POST`s to `/api/digest`.
-   The backend reads normalised on-disk data first and falls back to the Claude API,
-   caching in Redis (best-effort, 24h).
-
-See **`CLAUDE.md`** for architecture and conventions, **`LIMITATIONS.md`** for known
-edge cases, and **`TASKS.md`** for the roadmap. Live GDELT event data and a
-coordinate (hex) digest are in progress on the `wip/gdelt-integration` branch.
+See `CLAUDE.md` for conventions and gotchas, `LIMITATIONS.md` for what is known to be imperfect, `TASKS.md` for what is next.
 
 ## License
 
-Atlass is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0) — see
-[`LICENSE`](LICENSE). © 2026 yuw446. AGPL's network-use clause (§13) is deliberate: because Atlass
-is meant to be run as a hosted service, anyone who runs a modified version over a network must offer
-their users the corresponding source.
+AGPL-3.0, see `LICENSE`. The network-use clause is deliberate: anyone running a modified Atlas as a service must offer
+their users the source.
