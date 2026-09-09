@@ -10,10 +10,11 @@
 //       ▼
 //   publish gate: ≥99% well-formed, ≥200 rows, ≥50% placed ──fail──► state.skipped, next slot
 //       ▼
-//   articleFrom: title · place vote (FIPS→ISO first) · coord (type 2/3/4/5 > 1) · lenses (≥2 occurrences)
-//                · url/image validation · tone
+//   articleFrom: title · url/image validation · place vote (FIPS→ISO first) · coord (type 2/3/4/5 > 1)
+//                · non-news sections dropped · lenses (≥2 occurrences, ≥1 per 200 words; see shared/lenses.ts) · tone
 //       ▼
-//   dedupe: in-batch URL set, cross-batch ring(RING)  ──► domain cap among lensed
+//   dedupe: URL (in-batch set + cross-batch ring(RING)) · headline (token overlap in batch, normalised key in ring)
+//       ──► domain cap among lensed
 //       ▼
 //   per-country window(WINDOW batches): lens counts + story ring(TOP)  ──► n, lens[], dom, tone, top[]
 //       ▼
@@ -28,12 +29,13 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
 import { LENSES, parseThemes, scoreLenses, dominantLens } from '../shared/lenses.ts';
+import { titleTokens, sameStory } from '../shared/title.ts';
 import { fipsToIso, POLYGON_CODES } from '../shared/codes.ts';
 import { isSnapshot, SNAPSHOT_SCHEMA, type Snapshot, type Story, type CountrySnap } from '../shared/snapshot.ts';
 
 export const GDELT = 'https://data.gdeltproject.org/gdeltv2/';
 export const WINDOW = 8;        // batches per country window (two hours)
-export const RING = 8;          // batches of URL hashes kept for cross-batch dedupe
+export const RING = 8;          // batches of URL and normalised-headline hashes kept for cross-batch dedupe
 export const TOP = 10;          // distinct stories kept per country
 export const MAX_SLOTS = 32;    // slots processed per run: eight hours of catch-up, because GitHub's scheduler drops runs for hours at a time
 export const DOMAIN_CAP = 5;    // lensed articles per source domain per batch
@@ -41,7 +43,7 @@ export const SPARK_CAP = 3000;
 export const SLOW = 672;        // one-week EMA
 export const FAST = 8;          // two-hour EMA
 export const PRIOR_TICKS = 96;  // pseudo-observations behind the seeded baseline (one day); see seedBaselines()
-const COL = { DATE: 1, SOURCE: 3, URL: 4, THEMES: 8, LOCS: 10, TONE: 15, IMAGE: 18, EXTRAS: 26 } as const;
+export const COL = { DATE: 1, SOURCE: 3, URL: 4, THEMES: 8, LOCS: 10, TONE: 15, IMAGE: 18, EXTRAS: 26 } as const;
 const NCOLS = 27;
 
 // ---------- state ----------
@@ -55,7 +57,7 @@ export const SLOT_GRACE_MS = 2 * 60 * 60_000;
 export const MAX_PENDING = 32;
 
 export interface Totals { articles: number; placed: number; lensed: number; capped: number; unmapped: number; dropped_urls: number; dupes: number; malformed: number }
-const zeroTotals = (): Totals => ({ articles: 0, placed: 0, lensed: 0, capped: 0, unmapped: 0, dropped_urls: 0, dupes: 0, malformed: 0 });
+export const zeroTotals = (): Totals => ({ articles: 0, placed: 0, lensed: 0, capped: 0, unmapped: 0, dropped_urls: 0, dupes: 0, malformed: 0 });
 
 // ---------- batch ids ----------
 export function batchToIso(id: string): string {
@@ -99,7 +101,22 @@ export function parseRows(text: string): { rows: string[][]; malformed: number }
 
 // ---------- articles ----------
 export interface Article { url: string; host: string; title: string; iso: string; lat?: number; lon?: number; lens: number; score: number; tone: number | null; image?: string; at: string }
-export type Reject = 'no_title' | 'bad_url' | 'no_place' | 'unlensed';
+export type Reject = 'no_title' | 'bad_url' | 'no_place' | 'section' | 'unlensed';
+
+/**
+ * Publisher sections, slugs and headline words that mark entertainment, not news about a place. A film about the 1381
+ * Peasants' Revolt scores as a rebellion; the section or the word "review" is the only signal that it is a film.
+ * Measured over six batches on 2026-09-09 (docs/precision-check.md): 354 placed articles matched, none about its lens.
+ * ponytail: a fixed list; the ceiling is outlets whose URL has no section and whose headline has none of these words.
+ */
+export const NON_NEWS_PATH = /\/(entertainment|culture|movies?|films?|reviews?|tv|music|celebrity|celebs|showbiz|sports?|travel|food|recipes?|lifestyle|arts|books|gaming|games|fashion|style|horoscopes?|puzzles?)\/|-review(?:\/|$)|\/review-|(?:official|new|first|final|full|teaser|movie|film)-trailer|-trailer(?:\/|$)|trailer-(?:release|drop|reveal|debut|breakdown)|teaser|rotten-tomatoes|box-office|season-\d{1,2}\b/i;
+export const NON_NEWS_TITLE = /\b(?:official|new|first|final|full|teaser|movie|film|show|series|season \d{1,2}) trailer\b|\btrailer(?: drops?\b| released?\b| reveals?\b| debuts?\b| teases?\b| for\b|:)|\b(?:teaser|movies?|film(?! (?:shows|footage))|box office|rotten tomatoes|season \d{1,2}(?!\d)|album|netflix|hulu|prime video|premiere)\b|^(?:book |film |movie |tv |album )?review:/i;
+
+/** PAGE_TITLE from the Extras XML: entity-decoded, whitespace collapsed, control characters out, at most 300 characters. */
+export function pageTitle(cols: string[]): string {
+  const m = /<PAGE_TITLE>([^<]*)<\/PAGE_TITLE>/.exec(cols[COL.EXTRAS] ?? '');
+  return m?.[1] ? decodeEntities(m[1]).replace(/\s+/g, ' ').replace(/[\x00-\x1f\x7f-\x9f]/g, '').trim().slice(0, 300) : '';
+}
 
 /** PAGE_TITLE arrives HTML-escaped ("&#xBB;", "&amp;"). Decode numeric and the five named entities; nothing else. */
 const NAMED: Record<string, string> = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
@@ -152,8 +169,7 @@ export function primaryPlace(locs: Loc[]): { iso: string; lat?: number; lon?: nu
 }
 
 export function articleFrom(cols: string[], at: string, totals: Totals): { article?: Article; reject?: Reject } {
-  const m = /<PAGE_TITLE>([^<]*)<\/PAGE_TITLE>/.exec(cols[COL.EXTRAS] ?? '');
-  const title = m?.[1] ? decodeEntities(m[1]).replace(/\s+/g, ' ').trim() : '';
+  const title = pageTitle(cols);
   if (!title) return { reject: 'no_title' };
   const url = validUrl(cols[COL.URL]);
   if (!url) { totals.dropped_urls++; return { reject: 'bad_url' }; }
@@ -162,10 +178,12 @@ export function articleFrom(cols: string[], at: string, totals: Totals): { artic
   const place = primaryPlace(locs) ?? primaryPlace(locs.map(l => ({ ...l, iso: `~${l.fips}` })));
   if (!place) return { reject: 'no_place' };
   if (isSparkOnly(place.iso)) totals.unmapped++;
+  if (NON_NEWS_PATH.test(new URL(url).pathname) || NON_NEWS_TITLE.test(title)) return { reject: 'section' };
+  const [toneStr, , , , , , words] = (cols[COL.TONE] ?? '').split(',');   // V1.5Tone: tone, …, word count
   const scores = scoreLenses(parseThemes(cols[COL.THEMES]));
-  const lens = dominantLens(scores);
+  const lens = dominantLens(scores, Number(words) || 0);
   if (lens < 0) return { reject: 'unlensed' };
-  const tone = Number.parseFloat((cols[COL.TONE] ?? '').split(',')[0]);
+  const tone = Number.parseFloat(toneStr ?? '');
   let image = validUrl(cols[COL.IMAGE], true);
   if (cols[COL.IMAGE] && !image) totals.dropped_urls++;
   const host = (cols[COL.SOURCE] || new URL(url).hostname).toLowerCase();
@@ -195,18 +213,31 @@ export function processBatch(rows: string[][], malformed: number, at: string, st
   totals.placed = placedRows;
   const gate = wellFormed < 0.99 ? `well-formed ${(wellFormed * 100).toFixed(1)}%` : totals.articles < 200 ? `only ${totals.articles} rows` : placedRows / Math.max(1, rows.length) < 0.5 ? `placed ${placedRows}/${rows.length}` : undefined;
   if (gate) return { byCountry: new Map(), sparks: [], totals, gate };
-  // domain cap among lensed articles: keep the DOMAIN_CAP highest scores per host
+  // domain cap among lensed articles: keep the DOMAIN_CAP highest scores per host. The cap runs before the syndication
+  // merge so a story whose first copy sits on a capped aggregator still reaches the globe through its other copies.
   const byHost = new Map<string, Article[]>();
   for (const a of kept) (byHost.get(a.host) ?? byHost.set(a.host, []).get(a.host)!).push(a);
-  const byCountry = new Map<string, Article[]>(); const sparks: BatchResult['sparks'] = [];
+  const capped: Article[] = [];
   for (const list of byHost.values()) {
     list.sort((a, b) => b.score - a.score);
     totals.capped += Math.max(0, list.length - DOMAIN_CAP);
-    for (const a of list.slice(0, DOMAIN_CAP)) {
-      totals.lensed++;
-      (byCountry.get(a.iso) ?? byCountry.set(a.iso, []).get(a.iso)!).push(a);
-      if (a.lat !== undefined && a.lon !== undefined && sparks.length < SPARK_CAP) sparks.push([a.lat, a.lon, a.lens]);
-    }
+    capped.push(...list.slice(0, DOMAIN_CAP));
+  }
+  // Syndication: one wire story runs under many URLs, site tags and light edits. Same headline words in the same
+  // country → same story (templated headlines differ only by place); the strongest copy wins, then the one with a
+  // picture. The ring keeps the country-keyed headline so a copy that lands two batches later is a dupe too.
+  capped.sort((a, b) => b.score - a.score || Number(!!b.image) - Number(!!a.image));
+  const stories: Article[] = [], tokens: Set<string>[] = [];
+  const byCountry = new Map<string, Article[]>(); const sparks: BatchResult['sparks'] = [];
+  for (const a of capped) {
+    const tk = titleTokens(a.title);
+    const th = tk.size ? hash(`${a.iso} ${[...tk].sort().join(' ')}`) : '';
+    if (th && (ring.has(th) || tokens.some((k, j) => stories[j].iso === a.iso && sameStory(k, tk)))) { totals.dupes++; hashes.push(th); continue; }
+    if (th) hashes.push(th);
+    stories.push(a); tokens.push(tk);
+    totals.lensed++;
+    (byCountry.get(a.iso) ?? byCountry.set(a.iso, []).get(a.iso)!).push(a);
+    if (a.lat !== undefined && a.lon !== undefined && sparks.length < SPARK_CAP) sparks.push([a.lat, a.lon, a.lens]);
   }
   state.ring.push(hashes); while (state.ring.length > RING) state.ring.shift();
   return { byCountry, sparks, totals };
@@ -260,11 +291,11 @@ export function applyBatch(state: State, res: BatchResult, at: string): void {
     if (list.length) {
       const fresh: Story[] = list.map(a => ({ t: a.title, u: a.url, d: a.host, i: a.image, l: a.lens, s: a.score, lat: a.lat, lon: a.lon, at }));
       // Strongest lens signal first, then stories with an image, then newest; the panel shows them in this order.
-      // Syndicated wires repeat the same headline under different URLs, so dedupe by title as well as URL.
-      const seenU = new Set<string>(), seenT = new Set<string>();
+      // Syndicated wires repeat one story under different URLs and edited headlines, so dedupe by story as well as URL.
+      const seenU = new Set<string>(), keptT: Set<string>[] = [];
       cs.stories = [...fresh, ...cs.stories]
         .sort((p, q) => (q.s ?? 0) - (p.s ?? 0) || Number(!!q.i) - Number(!!p.i) || q.at.localeCompare(p.at))
-        .filter(s => { const t = s.t.toLowerCase(); if (seenU.has(s.u) || seenT.has(t)) return false; seenU.add(s.u); seenT.add(t); return true; })
+        .filter(s => { if (seenU.has(s.u)) return false; const tk = titleTokens(s.t); if (keptT.some(k => sameStory(k, tk))) return false; seenU.add(s.u); keptT.push(tk); return true; })
         .slice(0, TOP);
     }
     if (state.last_batch || !POLYGON_CODES.includes(iso)) updateBaseline(cs.bl, Math.log1p(list.length));
