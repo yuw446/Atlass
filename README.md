@@ -15,7 +15,9 @@ Conflict status drives the globe's colours and per-country markers.
 ## Quick start
 
 ```bash
-npm install                       # installs both workspaces
+nvm use                           # Node 24 (.nvmrc); the worker runs TypeScript directly
+npm install                       # installs the frontend workspace
+npm test                          # shared/ and worker/ tests, no dependencies needed
 
 # the backend needs an Anthropic key for live digests
 # (without one it returns a clear placeholder, the app still runs):

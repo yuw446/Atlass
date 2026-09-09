@@ -1,10 +1,16 @@
 # ATLAS — Project Tasks & Progress
 
-> Last updated: 2026-06-24
+> Last updated: 2026-09-07
 > Stack: Vite + React 19 + TypeScript + Tailwind v4 (frontend) · Express 5 + TypeScript + Anthropic SDK (backend)
 >
 > **Testing:** no automated test runner yet — `✅ COMPLETE` items are verified by manual smoke
 > (run `npm run dev`, click countries, exercise the digest panel and ingest pipeline), not by tests.
+
+> **Revival (2026-09-07):** the project is being restarted from the core concept. An approved design
+> ("Atlas — News Re-projected onto Place": GDELT GKG feed, four spatial lenses, GitHub Actions worker,
+> Pages frontend, no Perplexity, no LLM in the read path) lives at
+> `~/.gstack/projects/yuw446-Atlass/faye-claude-project-revival-core-e38374-design-20260907-115409.md`.
+> Phases 2–6 below are **superseded** by that design and will be rewritten in its first build step.
 
 ---
 
