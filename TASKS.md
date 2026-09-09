@@ -34,8 +34,7 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
 - ✅ Site live at https://yuw446.github.io/Atlass/ (GeoJSON moved to `geo/` so the site copy ships it). QA on the live page:
   load, fill by lens, click → panel with images/sources/times, lens toggle, phone layout (clock and hint hidden under 640 px),
   older-than-window stories labelled. Not yet checked on a real phone over 4G.
-- ⬜ **Owner: deploy `infra/tick-dispatch/`** (fine-grained token, `wrangler login`, `secret put`, `deploy`); GitHub's own
-  schedule ran 2 of 44 ticks on night one, so until this is live the globe is usually hours stale
+- ✅ `infra/tick-dispatch/` deployed (token by the owner; Durable Object alarm because Cloudflare cron never fired here)
 - ⬜ Send the link to three people and write down what they say first
 
 ## Next, in order (after the link is out)
