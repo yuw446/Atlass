@@ -1,6 +1,7 @@
 name = "atlas-tick-dispatch"
 main = "src/index.ts"
 compatibility_date = "2026-09-01"
+workers_dev = false   # cron only: no public URL, so no workers.dev subdomain or route is needed
 
 [triggers]
 crons = ["2,17,32,47 * * * *"]
