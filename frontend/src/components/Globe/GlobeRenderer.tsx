@@ -2,8 +2,8 @@ import { useRef, useCallback, useMemo, useEffect } from 'react';
 import Globe, { type GlobeMethods } from 'react-globe.gl';
 import * as THREE from 'three';
 import { useGlobeStore } from '../../store/globeStore';
-import { lightenHex } from './colorUtils';
-import { fillFor } from '../../lib/fill.ts';
+import { lighten, withAlpha } from '../../lib/color.ts';
+import { fillFor, fillAlphaFor, UNLIT_ALPHA } from '../../lib/fill.ts';
 import { useTweenedColors } from '../../lib/useTween.ts';
 import { attentionWords } from '../../lib/text.ts';
 import { LENSES, BASE_NAVY } from '../../../../shared/lenses.ts';
@@ -12,15 +12,11 @@ import type { GlobeFeature } from '../../types';
 interface GlobeRendererProps { width: number; height: number }
 interface Spark { lat: number; lng: number; lens: number }
 
-// Solid near-black globe surface; the translucent ocean sphere sits on top via Three.js
-function makeBlackGlobeTexture(): string {
-  const c = document.createElement('canvas');
-  c.width = 1; c.height = 1;
-  c.getContext('2d')!.fillStyle = '#020810';
-  c.getContext('2d')!.fillRect(0, 0, 1, 1);
-  return c.toDataURL();
-}
-const BLACK_GLOBE_URL = makeBlackGlobeTexture();
+// NASA Blue Marble (daylight) surface, served with the GeoJSON (preloaded from index.html). Country caps are
+// translucent so the imagery reads through them: unlit countries take a light navy tint, lensed countries take their
+// lens colour at an alpha that rises with attention (see fill.ts).
+const EARTH_TEXTURE_URL = `${import.meta.env.BASE_URL}geo/earth-blue-marble.jpg`;
+const UNLIT_FILL = withAlpha(BASE_NAVY, UNLIT_ALPHA);
 
 interface Bounds { minLat: number; maxLat: number; minLng: number; maxLng: number }
 function boundsOf(feat: GlobeFeature): Bounds | null {
@@ -47,13 +43,16 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
   const setHoveredCountry = useGlobeStore(s => s.setHoveredCountry);
   const selectCountry     = useGlobeStore(s => s.selectCountry);
 
-  // Target fill per country: recomputed only when the snapshot or the lens filter changes. `features` never changes
-  // identity after load, so the polygon data-join is never re-run by a colour update.
+  // Target fill per country as rgba: recomputed only when the snapshot or the lens filter changes. `features` never
+  // changes identity after load, so the polygon data-join is never re-run by a colour update. The tween interpolates
+  // the alpha along with the colour (d3's LAB interpolator carries opacity).
   const target = useMemo(() => {
     const m = new Map<string, string>();
     for (const f of features) {
       const code = f.properties.code;
-      if (code) m.set(code, fillFor(snapshot?.countries[code], lensFilter));
+      if (!code) continue;
+      const c = snapshot?.countries[code];
+      m.set(code, withAlpha(fillFor(c, lensFilter), fillAlphaFor(c, lensFilter)));
     }
     return m;
   }, [features, snapshot, lensFilter]);
@@ -82,7 +81,10 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     globeRef.current.pointOfView({ lat: (b.minLat + b.maxLat) / 2, lng: (b.minLng + b.maxLng) / 2, altitude }, 1000);
   }, [selectedCountry, features]);
 
-  const handleGlobeReady = useCallback(() => {
+  // One-time scene setup on mount. Not in `onGlobeReady`: three-globe fires that only after the texture download
+  // succeeds, and a lost 770 KB request would otherwise silently leave the scene without stars or a starting view.
+  // react-globe.gl builds the globe in a layout effect, so the ref is populated by the time this effect runs.
+  useEffect(() => {
     const globe = globeRef.current;
     if (!globe) return;
     globe.pointOfView({ lat: 20, lng: 15, altitude: 2.5 }, 0);
@@ -90,11 +92,6 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     controls.autoRotate = true;
     controls.autoRotateSpeed = 0.3;
     const scene = globe.scene();
-    // Translucent ocean just above the surface; polygons sit above it, so it only shows over water
-    scene.add(new THREE.Mesh(
-      new THREE.SphereGeometry(100.2, 64, 64),
-      new THREE.MeshBasicMaterial({ color: new THREE.Color(0x0b3d70), transparent: true, opacity: 0.58, depthWrite: false }),
-    ));
     const N = 3000, pos = new Float32Array(N * 3);
     for (let i = 0; i < N; i++) {
       const theta = Math.random() * Math.PI * 2, phi = Math.acos(2 * Math.random() - 1), r = 450 + Math.random() * 150;
@@ -107,9 +104,9 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
 
   const polygonCapColor = useCallback((feat: object) => {
     const code = codeOf(feat);
-    const base = displayed.get(code) ?? BASE_NAVY;
-    if (code === selectedCountry) return lightenHex(base, 0.3);
-    if (code === hoveredCountry) return lightenHex(base, 0.15);
+    const base = displayed.get(code) ?? UNLIT_FILL;
+    if (code === selectedCountry) return lighten(base, 0.3);
+    if (code === hoveredCountry) return lighten(base, 0.15);
     return base;
   }, [displayed, hoveredCountry, selectedCountry]);
 
@@ -122,7 +119,7 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
     const code = codeOf(feat);
     if (code === selectedCountry) return '#A8DCFF';
     if (code === hoveredCountry) return '#3FA8E0';
-    return 'rgba(80, 150, 220, 0.45)';
+    return 'rgba(255, 255, 255, 0.35)';
   }, [hoveredCountry, selectedCountry]);
 
   const polygonLabel = useCallback((feat: object) => {
@@ -149,16 +146,16 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
       ref={globeRef}
       width={width}
       height={height}
-      globeImageUrl={BLACK_GLOBE_URL}
+      globeImageUrl={EARTH_TEXTURE_URL}
       backgroundColor="rgba(4,6,12,1)"
       showGraticules={false}
       showAtmosphere={true}
-      atmosphereColor="#1a3a5c"
-      atmosphereAltitude={0.18}
+      atmosphereColor="#5aa9ff"
+      atmosphereAltitude={0.2}
 
       polygonsData={features}
       polygonCapColor={polygonCapColor}
-      polygonSideColor={() => '#080B14'}
+      polygonSideColor={() => 'rgba(8, 11, 20, 0.35)'}
       polygonStrokeColor={polygonStrokeColor}
       polygonAltitude={polygonAltitude}
       polygonLabel={polygonLabel}
@@ -173,8 +170,6 @@ export default function GlobeRenderer({ width, height }: GlobeRendererProps) {
       pointColor={pointColor}
       pointAltitude={0.012}
       pointRadius={0.22}
-
-      onGlobeReady={handleGlobeReady}
     />
   );
 }

@@ -6,6 +6,10 @@
     <title>ATLAS — the news, by place</title>
     <meta name="description" content="The news re-projected onto place: every 15 minutes, stories land on the globe where they happen. Conflict, disaster and climate, unrest, displacement." />
 
+    <!-- The globe texture is 770 KB; start it with the HTML rather than after the lazy globe chunk. Three.js loads images
+         with crossorigin="anonymous", so the preload must match or the browser fetches it twice. -->
+    <link rel="preload" as="image" href="%BASE_URL%geo/earth-blue-marble.jpg" crossorigin="anonymous" />
+
     <!-- Fonts — link preload, not CSS @import, to avoid render blocking -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

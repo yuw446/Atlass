@@ -50,3 +50,6 @@ See `CLAUDE.md` for conventions and gotchas, `LIMITATIONS.md` for what is known 
 
 AGPL-3.0, see `LICENSE`. The network-use clause is deliberate: anyone running a modified Atlas as a service must offer
 their users the source.
+
+Country outlines are Natural Earth 110m (public domain). The globe surface is NASA Blue Marble (public domain), taken
+from the [three-globe](https://github.com/vasturiano/three-globe) example images (MIT). Stories are GDELT's.
