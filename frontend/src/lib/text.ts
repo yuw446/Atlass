@@ -8,12 +8,6 @@ export function attentionWords(z: number): string {
   return 'quiet';
 }
 
-/** Strip one trailing " | Site" or " - Site" segment, only when at least 20 characters remain. Display only. */
-export function trimTitle(t: string): string {
-  const m = /^(.*\S)\s+[|\-–—]\s+[^|\-–—]{1,60}$/.exec(t);
-  return m && m[1].length >= 20 ? m[1] : t;
-}
-
 /** "14:45 UTC" from an ISO timestamp; empty string when unparseable. */
 export function tickClock(iso: string): string {
   const d = new Date(iso);
