@@ -71,6 +71,10 @@ export default function StoryPanel() {
   const name = names.get(code) ?? code;
   const total = country?.n ?? 0;
   const byLens = LENSES.map((lens, i) => ({ lens, i, stories: (country?.top ?? []).filter(s => s.l === i) })).filter(g => g.stories.length > 0);
+  // The story ring keeps up to ten headlines across batches, so it can hold stories older than the two-hour window
+  // that `n` counts. Say so rather than let the count and the list disagree.
+  const windowStart = snap.snapshot ? Date.parse(snap.snapshot.tick) - snap.snapshot.window * 15 * 60_000 : 0;
+  const older = (country?.top ?? []).filter(s => Date.parse(s.at) < windowStart).length;
 
   return (
     <>
@@ -86,7 +90,7 @@ export default function StoryPanel() {
 
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><SkeletonBlock height={26} width={200} /><SkeletonBlock height={110} /><SkeletonBlock height={11} width="80%" /></div>
-        ) : !country || total === 0 ? (
+        ) : !country || (total === 0 && older === 0) ? (
           <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: 'monospace', lineHeight: 1.7 }}>
             No stories under a lens in the last two hours.
             <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.25)' }}>Lenses: conflict, disaster & climate, unrest, displacement. Trade and policy are not shown.</div>
@@ -94,10 +98,10 @@ export default function StoryPanel() {
         ) : (
           <>
             <div style={{ fontFamily: 'monospace', fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'rgba(232,236,244,0.6)', marginBottom: 8 }}>
-              attention {attentionWords(country.z)} · {total} {total === 1 ? 'story' : 'stories'} in 2 h
+              attention {attentionWords(country.z)} · {total} {total === 1 ? 'story' : 'stories'} in 2 h{older > 0 ? ` · ${older} older` : ''}
             </div>
             <div style={{ display: 'flex', height: 6, borderRadius: 3, overflow: 'hidden', marginBottom: 20, background: 'rgba(255,255,255,0.06)' }} aria-hidden="true">
-              {LENSES.map((lens, i) => country.lens[i] > 0 && (
+              {total > 0 && LENSES.map((lens, i) => country.lens[i] > 0 && (
                 <div key={lens.id} title={`${lens.label}: ${country.lens[i]}`} style={{ width: `${(100 * country.lens[i]) / total}%`, background: lens.color }} />
               ))}
             </div>
