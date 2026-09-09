@@ -319,7 +319,11 @@ export async function latestBatchId(fetchFn: FetchFn): Promise<string> {
   return m[1];
 }
 
-export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s: string) => void = console.log): Promise<number> {
+export interface RunOptions { latestRetries?: number; retryDelayMs?: number }
+const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
+
+export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s: string) => void = console.log, opts: RunOptions = {}): Promise<number> {
+  const { latestRetries = 4, retryDelayMs = 30_000 } = opts;
   const dataDir = join(siteDir, 'data'); mkdirSync(join(dataDir, 'hours'), { recursive: true });
   const statePath = join(dataDir, 'state.json');
   const state: State = existsSync(statePath) ? JSON.parse(readFileSync(statePath, 'utf8')) : emptyState();
@@ -329,8 +333,12 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
   if (!slots.length) { log(`already at ${latest}`); return 0; }
   let last: { snap: Snapshot; hours: HoursDoc } | undefined;
   for (const id of slots) {
-    const r = await fetchFn(`${GDELT}${id}.gkg.csv.zip`);
+    let r = await fetchFn(`${GDELT}${id}.gkg.csv.zip`);
     if (r.status === 404 && id !== latest) { state.skipped.push(id); log(`skip ${id}: 404`); continue; }
+    // GDELT writes lastupdate.txt before the (largest) GKG upload finishes; a run a few minutes past the
+    // quarter hour can race it. Wait it out. If it never appears, do not advance: the next cron retries.
+    for (let i = 0; r.status === 404 && i < latestRetries; i++) { log(`latest ${id} not published yet, retry ${i + 1}/${latestRetries}`); await sleep(retryDelayMs); r = await fetchFn(`${GDELT}${id}.gkg.csv.zip`); }
+    if (r.status === 404) { log(`latest ${id} still missing; leaving last_batch at ${state.last_batch ?? 'none'}`); break; }
     if (r.status !== 200 || !r.buf) throw new Error(`${id}: HTTP ${r.status}`);
     const { rows, malformed } = parseRows(unzipSingle(r.buf).toString('utf8'));
     const at = batchToIso(id);
