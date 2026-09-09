@@ -12,3 +12,6 @@ WORKFLOW = "tick.yml"
 REF = "main"
 
 # GITHUB_TOKEN is a secret: `npx wrangler secret put GITHUB_TOKEN`
+
+[observability]
+enabled = true   # persisted logs: dashboard → Workers → atlas-tick-dispatch → Logs, or wrangler tail
