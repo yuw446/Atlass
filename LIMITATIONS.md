@@ -23,10 +23,14 @@ The legend says "English-language media".
 Fill colour, lens mix, and the panel's stories aggregate the last 8 batches; sparks are the current batch. A single
 batch holds one or two lensed stories for a typical country, which is why the window exists.
 
-### Publish race and clock drift in the feed
+### Publish race, lag, and clock drift in the feed
 `lastupdate.txt` is written before the GKG file finishes uploading, so a run minutes after the quarter hour can see a
-404 for the latest file; the worker retries four times 30 seconds apart, then leaves it for the next cron. Batch
-labels can run up to ten minutes ahead of wall-clock; the page clamps "last tick" at zero minutes.
+404 for the latest file; the worker retries four times 30 seconds apart, then leaves it for the next run. The GKG
+file can also lag the export file by more than half an hour (seen 2026-09-09: 13:30, 13:45 and 14:00 exports
+present, GKG files absent, index already at 14:00). Missing non-latest slots therefore go to `state.pending` and are
+retried at the start of every run for two hours before being recorded as skipped; a late batch feeds the window and
+the hour buckets but never overwrites `latest.json` with an older tick. Batch labels can run up to ten minutes ahead
+of wall-clock; the page clamps "last tick" at zero minutes.
 
 ## Hosting
 

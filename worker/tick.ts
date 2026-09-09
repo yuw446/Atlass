@@ -48,8 +48,11 @@ const NCOLS = 27;
 export interface Baseline { fast: number; base: number; var: number; ticks: number }
 export interface WinEntry { at: string; lens: number[]; tsum: number; tn: number }
 export interface CountryState { win: WinEntry[]; stories: Story[]; bl: Baseline }
-export interface State { last_batch: string | null; skipped: string[]; ring: string[][]; countries: Record<string, CountryState> }
-export const emptyState = (): State => ({ last_batch: null, skipped: [], ring: [], countries: {} });
+export interface State { last_batch: string | null; skipped: string[]; pending?: string[]; ring: string[][]; countries: Record<string, CountryState> }
+export const emptyState = (): State => ({ last_batch: null, skipped: [], pending: [], ring: [], countries: {} });
+/** A non-latest slot that 404s is retried on later runs until it is this old; only then is it recorded as skipped. */
+export const SLOT_GRACE_MS = 2 * 60 * 60_000;
+export const MAX_PENDING = 32;
 
 export interface Totals { articles: number; placed: number; lensed: number; capped: number; unmapped: number; dropped_urls: number; dupes: number; malformed: number }
 const zeroTotals = (): Totals => ({ articles: 0, placed: 0, lensed: 0, capped: 0, unmapped: 0, dropped_urls: 0, dupes: 0, malformed: 0 });
@@ -319,22 +322,36 @@ export async function latestBatchId(fetchFn: FetchFn): Promise<string> {
   return m[1];
 }
 
-export interface RunOptions { latestRetries?: number; retryDelayMs?: number }
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms));
 
+export interface RunOptions { latestRetries?: number; retryDelayMs?: number; now?: () => number }
+
 export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s: string) => void = console.log, opts: RunOptions = {}): Promise<number> {
-  const { latestRetries = 4, retryDelayMs = 30_000 } = opts;
+  const { latestRetries = 4, retryDelayMs = 30_000, now = Date.now } = opts;
   const dataDir = join(siteDir, 'data'); mkdirSync(join(dataDir, 'hours'), { recursive: true });
   const statePath = join(dataDir, 'state.json');
   const state: State = existsSync(statePath) ? JSON.parse(readFileSync(statePath, 'utf8')) : emptyState();
+  state.pending ??= [];
   const latest = await latestBatchId(fetchFn);
   const { slots, jumped } = slotsToProcess(state.last_batch, latest);
   if (jumped) { state.skipped.push(jumped); log(`jumped over ${jumped}`); }
-  if (!slots.length) { log(`already at ${latest}`); return 0; }
+  // GDELT sometimes publishes a slot's GKG file long after the index has moved on (35+ min seen live), and sometimes
+  // never. Missing non-latest slots go to `pending` and are retried at the start of every run until SLOT_GRACE_MS
+  // old; only then are they skipped for good. A late batch is applied out of order, which the window and the hour
+  // buckets tolerate (both are keyed by the batch's own time) and the baselines barely notice.
+  const ageMs = (id: string) => now() - Date.parse(batchToIso(id));
+  const retry = state.pending.filter(id => id !== latest && !slots.includes(id));
+  state.pending = [];
+  const work: string[] = [...retry, ...slots];
+  if (!work.length) { log(`already at ${latest}`); writeFileSync(statePath, JSON.stringify(state)); return 0; }
   let last: { snap: Snapshot; hours: HoursDoc } | undefined;
-  for (const id of slots) {
+  for (const id of work) {
     let r = await fetchFn(`${GDELT}${id}.gkg.csv.zip`);
-    if (r.status === 404 && id !== latest) { state.skipped.push(id); log(`skip ${id}: 404`); continue; }
+    if (r.status === 404 && id !== latest) {
+      if (ageMs(id) < SLOT_GRACE_MS) { if (state.pending.length < MAX_PENDING) state.pending.push(id); log(`${id} not published yet; will retry`); }
+      else { state.skipped.push(id); log(`skip ${id}: still 404 after ${Math.round(SLOT_GRACE_MS / 60_000)} min`); }
+      continue;
+    }
     // GDELT writes lastupdate.txt before the (largest) GKG upload finishes; a run a few minutes past the
     // quarter hour can race it. Wait it out. If it never appears, do not advance: the next cron retries.
     for (let i = 0; r.status === 404 && i < latestRetries; i++) { log(`latest ${id} not published yet, retry ${i + 1}/${latestRetries}`); await sleep(retryDelayMs); r = await fetchFn(`${GDELT}${id}.gkg.csv.zip`); }
@@ -343,14 +360,16 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
     const { rows, malformed } = parseRows(unzipSingle(r.buf).toString('utf8'));
     const at = batchToIso(id);
     const res = processBatch(rows, malformed, at, state);
-    if (res.gate) { state.skipped.push(id); state.last_batch = id; log(`gate ${id}: ${res.gate}`); continue; }
+    if (res.gate) { state.skipped.push(id); if (id > (state.last_batch ?? '')) state.last_batch = id; log(`gate ${id}: ${res.gate}`); continue; }
+    const prev = state.last_batch;
     applyBatch(state, res, at);
+    if (prev && id < prev) state.last_batch = prev;   // a late-arriving slot must not move the cursor backwards
     const snap = snapshotFrom(state, at, res);
     if (!isSnapshot(snap)) throw new Error('snapshot failed its own guard');
     const hp = join(dataDir, 'hours', `${at.slice(0, 10)}.json`);
     const hours = accumulateHours(existsSync(hp) ? JSON.parse(readFileSync(hp, 'utf8')) : undefined, snap);
     writeFileSync(hp, JSON.stringify(hours));
-    last = { snap, hours };
+    if (!prev || id >= prev) last = { snap, hours };   // a late-arriving batch feeds the window and hours, not latest.json
     log(`${id}: ${res.totals.articles} rows, ${res.totals.placed} placed, ${res.totals.lensed} lensed, ${Object.keys(snap.countries).length} countries, ${res.sparks.length} sparks`);
   }
   if (last) writeFileSync(join(dataDir, 'latest.json'), JSON.stringify(last.snap));
