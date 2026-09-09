@@ -34,9 +34,14 @@ labels can run up to ten minutes ahead of wall-clock; the page clamps "last tick
 Pages and the Actions budget depend on the paid plan. The cron uses about 2,900 of 3,000 minutes a month. A
 month-end overage stops the cron until the budget resets; the header turns amber ("feed is late").
 
-### Cron drift and schedule registration
-GitHub runs `*/15` schedules 5 to 30 minutes late under load, and a newly added schedule may not fire until another
-push lands on `main`. `keepalive.yml` pushes an empty commit weekly. Expected tick age is about 20 minutes at the median.
+### GitHub's scheduler drops most runs on this repository
+**Symptom:** the header says "feed is late" for hours; `state.skipped` holds whole ranges of batches.
+**Root cause:** GitHub documents that `schedule` events "can be delayed or dropped during periods of high load."
+On this private repository it ran the tick twice in the first eleven hours instead of 44 times.
+**In place:** `infra/tick-dispatch/`, a Cloudflare Worker cron that calls the workflow-dispatch API every 15 minutes
+(punctual to the minute; the owner deploys it with a repo-scoped token). The workflow's own `schedule:` stays as a
+fallback. When a run does happen after a gap it catches up 32 slots (eight hours); older gaps are recorded in
+`state.skipped` and stay holes in `hours/`. Expected tick age with the dispatcher is under ten minutes at the median.
 
 ### Pages cache
 Pages serves `data/latest.json` with `cache-control: max-age=600`. The page polls every minute with `cache: 'no-cache'`,

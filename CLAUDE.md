@@ -56,8 +56,14 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
   wall-clock. The frontend clamps age at zero.
 - The repository is private on GitHub Pro. Pages works on private repos; the cron uses about 2,900 of 3,000 Actions
   minutes a month at one minute per tick. The tick job installs nothing so it stays fast.
-- Scheduled workflows only fire from `main` and are disabled after 60 days without a commit to `main`; `keepalive.yml`
-  pushes an empty commit weekly. A brand-new schedule may not register until the next push to `main`.
+- GitHub's `schedule` trigger dropped 42 of the first 44 ticks on this private repo. The punctual trigger is
+  `infra/tick-dispatch/`, a Cloudflare Worker cron that calls the workflow-dispatch API at :02, :17, :32, :47
+  (deployed by the owner with a repo-scoped token; see its README). `tick.yml` keeps `schedule:` as a fallback, and
+  `keepalive.yml` pushes an empty commit weekly so the fallback is never disabled for inactivity.
+- Keep `frontend`'s `three` pinned to the version `globe.gl` requires (`npm ls three` must show one copy), or the
+  vendor chunk ships two copies of Three.js and the console warns "Multiple instances".
+- `pages.yml` copies `dist/` into the `gh-pages` worktree with `rsync --delete`; `.git` must stay excluded or the
+  worktree link file is deleted and `git add` silently stages nothing.
 - Natural Earth 110m has `ISO_A2 = -99` for France, Norway, Kosovo; `FIPS_10 = -99` for Norway, Israel, Palestine,
   South Sudan (overrides live in `scripts/gen-codes.ts`). Northern Cyprus and Somaliland have no code and are not drawn.
 - Node 22.14 needs `--experimental-strip-types` (the npm scripts pass it); Node 24 does not. Node's `fetch` ignores

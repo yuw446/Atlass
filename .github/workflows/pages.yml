@@ -56,9 +56,11 @@ jobs:
           fi
 
       - name: Copy the built site in, keeping data/
+        # --exclude .git: the worktree's .git is a link file; deleting it makes `git add` below fall through to the parent repo
         run: |
-          rsync -a --delete --exclude data --exclude .nojekyll frontend/dist/ site/
+          rsync -a --delete --exclude .git --exclude data/ --exclude .nojekyll frontend/dist/ site/
           touch site/.nojekyll
+          test -f site/.git && test -f site/index.html && ls site
 
       - name: Publish (one commit, force-pushed)
         run: |

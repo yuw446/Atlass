@@ -22,7 +22,7 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
 - ✅ Pages enabled from `gh-pages`; `https://yuw446.github.io/Atlass/data/latest.json` serves
 - ✅ Publish-race retry after the first live failure
 
-### PR2 — the globe 🔄 (this branch)
+### PR2 — the globe ✅ (merged #6, #7)
 - ✅ `frontend/src/lib`: snapshot state machine, fill colour, tween math, text helpers, densify — all tested
 - ✅ `useSnapshot` (poll, localStorage last-good, schema guard, nodata/stale/error), `useTweenedColors`
 - ✅ `useGlobeData` shrunk to fetch + densify + one `code`; renderer reads only `code`; sparks with `pointsMerge`
@@ -30,7 +30,11 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
 - ✅ App shell: feed status header, legend with lens toggles and honesty line, lazy globe chunk, vendor chunk
 - ✅ Backend, Perplexity spec, hardcoded data, taxonomy, arcs, markers deleted; `tsc -b` green
 - ✅ `pages.yml`; docs rewritten
-- ⬜ Merge, confirm the site publishes, run `/qa` against the saved test plan, send the link to three people
+- ✅ Merged; lockfile regenerated for the Linux bundler binding; Three.js aligned to one copy
+- 🔄 Confirm the site publishes at https://yuw446.github.io/Atlass/, run `/qa` against the saved test plan
+- ⬜ **Owner: deploy `infra/tick-dispatch/`** (fine-grained token, `wrangler login`, `secret put`, `deploy`); GitHub's own
+  schedule ran 2 of 44 ticks on night one, so until this is live the globe is usually hours stale
+- ⬜ Send the link to three people and write down what they say first
 
 ## Next, in order (after the link is out)
 - ⬜ **Precision check**: 50 random placed stories from one tick, right country and lens ≥ 40/50, recorded in `docs/precision-check.md`
@@ -49,7 +53,7 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
 | Issue | Impact | Plan |
 |-------|--------|------|
 | GDELT tagging noise (place vote, lens false positives) | Occasional wrong-country or wrong-lens story | Precision check, then tune the two-occurrence rule or add a three-occurrence threshold |
-| New schedule may not fire until a push to `main` | Feed shows "late" after a fresh deploy | Keepalive commit; verify after each workflow change |
+| GitHub `schedule` drops most runs (2 of 44 on night one) | Feed hours stale without the dispatcher | Deploy `infra/tick-dispatch/`; keepalive keeps the fallback alive |
 | Actions budget on Pro is tight (~2,900 of 3,000 min) | Overage or stopped cron at month end | Measure in week one; drop to */20 if needed |
 | "Multiple instances of Three.js" console warning | None visible; react-globe.gl bundles its own three | Align versions when upgrading |
 | Greenland tessellation artifacts | Cosmetic at some zooms | Higher-resolution GeoJSON or great-circle densification |
