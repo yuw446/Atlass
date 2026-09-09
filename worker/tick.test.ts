@@ -234,18 +234,55 @@ test('run writes latest.json, hours and state; a second run on the same batch ch
   assert.ok(logs.some(l => l.startsWith('already at')));
 });
 
-test('run walks a gap: 404 on non-latest slots is skipped and recorded; the latest is processed', async () => {
+test('run walks a gap: old missing slots are skipped, the latest is processed', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
   const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
-  await run(site, fetchFn, () => {});
+  const dayLater = () => Date.parse(AT) + 24 * 3600_000;   // every slot is far older than the grace
+  await run(site, fetchFn, () => {}, { now: dayLater });
   const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
   state.last_batch = '20260908224500';
   const { writeFileSync } = await import('node:fs');
   writeFileSync(join(site, 'data/state.json'), JSON.stringify(state));
-  await run(site, fetchFn, () => {});
+  await run(site, fetchFn, () => {}, { now: dayLater });
   const after: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
   assert.deepEqual(after.skipped, ['20260908230000', '20260908231500']);
+  assert.deepEqual(after.pending, []);
   assert.equal(after.last_batch, ID);
+});
+
+test('a young missing slot goes to pending, is retried next run, and a late arrival is applied without moving the cursor back', async () => {
+  const site = mkdtempSync(join(tmpdir(), 'atlas-'));
+  const MISSING = '20260908231500';
+  const files: Record<string, Fetched> = { [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } };
+  const fetchFn = stub(files);
+  const soon = () => Date.parse(AT) + 5 * 60_000;   // five minutes after the latest batch: the gap is young
+  await run(site, fetchFn, () => {}, { now: soon });
+  const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  state.last_batch = '20260908230000';
+  const { writeFileSync } = await import('node:fs');
+  writeFileSync(join(site, 'data/state.json'), JSON.stringify(state));
+  const logs: string[] = [];
+  await run(site, fetchFn, s => logs.push(s), { now: soon });
+  let s: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  assert.deepEqual(s.pending, [MISSING], 'young 404 is pending, not skipped');
+  assert.deepEqual(s.skipped, []);
+  assert.equal(s.last_batch, ID, 'the walk still reached the latest');
+  // The missing file appears. Next run retries it first and applies it; the cursor stays at the latest.
+  files[`${G}${MISSING}.gkg.csv.zip`] = { status: 200, buf: ZIP };
+  const before = JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8')).tick;
+  await run(site, fetchFn, s => logs.push(s), { now: soon });
+  s = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  assert.deepEqual(s.pending, []);
+  assert.equal(s.last_batch, ID);
+  assert.equal(JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8')).tick, before, 'latest.json is not rewritten by an older batch');
+  assert.ok(existsSync(join(site, 'data/hours/2026-09-08.json')));
+  // A slot that stays missing past the grace is skipped for good.
+  files[`${G}${MISSING}.gkg.csv.zip`] = { status: 404 };
+  s.pending = [MISSING]; writeFileSync(join(site, 'data/state.json'), JSON.stringify(s));
+  await run(site, fetchFn, () => {}, { now: () => Date.parse(AT) + 3 * 3600_000 });
+  s = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  assert.deepEqual(s.skipped, [MISSING]);
+  assert.deepEqual(s.pending, []);
 });
 
 test('run exits non-zero when the latest zip is unavailable', async () => {
