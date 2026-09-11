@@ -11,6 +11,7 @@ npm test                                # node --test over shared/*.test.ts, wor
 npm run tick -- --site ./site           # run one worker tick locally (writes ./site/data; needs network)
 npm run gen:codes                       # regenerate shared/codes.generated.ts from the GeoJSON
 npm run audit -- <batch id | zip>       # print what one GKG batch would lens (docs/precision-check.md)
+npm run clean:state -- <dir> [--write]  # re-apply the filters to a copy of the published state after a rule change
 npm run dev:frontend                    # Vite dev server at http://localhost:5173/Atlass/ (live feed via proxy)
 npm run build:frontend                  # tsc -b && vite build
 cd frontend && npx eslint .             # lint (react-hooks rules are strict: no setState in effects, no refs in render)

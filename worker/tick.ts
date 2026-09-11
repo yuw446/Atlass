@@ -107,9 +107,16 @@ export type Reject = 'no_title' | 'bad_url' | 'no_place' | 'section' | 'unlensed
  * Publisher sections, slugs and headline words that mark entertainment, not news about a place. A film about the 1381
  * Peasants' Revolt scores as a rebellion; the section or the word "review" is the only signal that it is a film.
  * Measured over six batches on 2026-09-09 (docs/precision-check.md): 354 placed articles matched, none about its lens.
+ * "-review-" mid-slug is deliberately not matched: a guard fitted to one day's slugs dropped a live flood story
+ * ("rates-review-consultation-extended") for two film reviews caught. Reviews of a work are caught at the slug end,
+ * at the segment start, and by the headline; the rest is the ceiling.
  * ponytail: a fixed list; the ceiling is outlets whose URL has no section and whose headline has none of these words.
  */
 export const NON_NEWS_PATH = /\/(entertainment|culture|movies?|films?|reviews?|tv|music|celebrity|celebs|showbiz|sports?|travel|food|recipes?|lifestyle|arts|books|gaming|games|fashion|style|horoscopes?|puzzles?)\/|-review(?:\/|$)|\/review-|(?:official|new|first|final|full|teaser|movie|film)-trailer|-trailer(?:\/|$)|trailer-(?:release|drop|reveal|debut|breakdown)|teaser|rotten-tomatoes|box-office|season-\d{1,2}\b/i;
+/** Why an article is not news about a place, or undefined when it is. One predicate for the worker and scripts/clean-state.ts. */
+export function nonNewsReason(pathname: string, title: string): 'path' | 'title' | undefined {
+  return NON_NEWS_PATH.test(pathname) ? 'path' : NON_NEWS_TITLE.test(title) ? 'title' : undefined;
+}
 export const NON_NEWS_TITLE = /\b(?:official|new|first|final|full|teaser|movie|film|show|series|season \d{1,2}) trailer\b|\btrailer(?: drops?\b| released?\b| reveals?\b| debuts?\b| teases?\b| for\b|:)|\b(?:teaser|movies?|film(?! (?:shows|footage))|box office|rotten tomatoes|season \d{1,2}(?!\d)|album|netflix|hulu|prime video|premiere)\b|^(?:book |film |movie |tv |album )?review:/i;
 
 /** PAGE_TITLE from the Extras XML: entity-decoded, whitespace collapsed, control characters out, at most 300 characters. */
@@ -178,7 +185,7 @@ export function articleFrom(cols: string[], at: string, totals: Totals): { artic
   const place = primaryPlace(locs) ?? primaryPlace(locs.map(l => ({ ...l, iso: `~${l.fips}` })));
   if (!place) return { reject: 'no_place' };
   if (isSparkOnly(place.iso)) totals.unmapped++;
-  if (NON_NEWS_PATH.test(new URL(url).pathname) || NON_NEWS_TITLE.test(title)) return { reject: 'section' };
+  if (nonNewsReason(new URL(url).pathname, title)) return { reject: 'section' };
   const [toneStr, , , , , , words] = (cols[COL.TONE] ?? '').split(',');   // V1.5Tone: tone, …, word count
   const scores = scoreLenses(parseThemes(cols[COL.THEMES]));
   const lens = dominantLens(scores, Number(words) || 0);
@@ -291,17 +298,20 @@ export function applyBatch(state: State, res: BatchResult, at: string): void {
     if (list.length) {
       const fresh: Story[] = list.map(a => ({ t: a.title, u: a.url, d: a.host, i: a.image, l: a.lens, s: a.score, lat: a.lat, lon: a.lon, at }));
       // Strongest lens signal first, then stories with an image, then newest; the panel shows them in this order.
-      // Syndicated wires repeat one story under different URLs and edited headlines, so dedupe by story as well as URL.
-      const seenU = new Set<string>(), keptT: Set<string>[] = [];
-      cs.stories = [...fresh, ...cs.stories]
-        .sort((p, q) => (q.s ?? 0) - (p.s ?? 0) || Number(!!q.i) - Number(!!p.i) || q.at.localeCompare(p.at))
-        .filter(s => { if (seenU.has(s.u)) return false; const tk = titleTokens(s.t); if (keptT.some(k => sameStory(k, tk))) return false; seenU.add(s.u); keptT.push(tk); return true; })
-        .slice(0, TOP);
+      cs.stories = dedupeStories([...fresh, ...cs.stories]
+        .sort((p, q) => (q.s ?? 0) - (p.s ?? 0) || Number(!!q.i) - Number(!!p.i) || q.at.localeCompare(p.at))).slice(0, TOP);
     }
     if (state.last_batch || !POLYGON_CODES.includes(iso)) updateBaseline(cs.bl, Math.log1p(list.length));
     // On the seeding batch, polygon countries were just initialised at this x; updating again would double-count it.
   }
   state.last_batch = isoToBatch(at);
+}
+
+/** Keep the first of each story, by URL and then by headline (syndicated wires repeat one story under many URLs and
+ *  edited headlines). The list must already be in preference order. Shared with scripts/clean-state.ts. */
+export function dedupeStories<T extends { t: string; u: string }>(list: T[]): T[] {
+  const seenU = new Set<string>(), keptT: Set<string>[] = [];
+  return list.filter(s => { if (seenU.has(s.u)) return false; const tk = titleTokens(s.t); if (keptT.some(k => sameStory(k, tk))) return false; seenU.add(s.u); keptT.push(tk); return true; });
 }
 
 export function snapshotFrom(state: State, at: string, res: BatchResult, source = 'gdelt-gkg-2.1-english'): Snapshot {

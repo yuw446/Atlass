@@ -55,6 +55,22 @@ batches; the only news among them was a trailer thief. Review then pinned the fa
 tests: `hurricane-season-2026` slugs, trailer parks, "film shows" and mid-slug "review" are left alone. A brand name such
 as Netflix still drops a headline, a known ceiling.
 
+Mid-slug `-review-` was tried on 2026-09-11 with a guard for the verb forms (`to-review-`, `review-of`, `review-plans`,
+`review-finds`), fitted to all 54 review slugs in the six batches, where it dropped one film review and no news. On the
+live 818-story ring it caught two more film reviews and dropped a New Zealand flood story
+(`rates-review-consultation-extended`). Two reviews for one lost flood story is the wrong trade, and a list fitted to
+one day's slugs cannot bound that rate, so there is no mid-slug rule. The news shapes are pinned in the tests so a
+future rule has to keep them.
+
+## Stored stories after a rule change
+
+The rules run on incoming rows. Stories already in the per-country rings keep their old scores and their old mistakes,
+and because the ring sorts by score, inflated pre-change entries outrank correct new ones indefinitely.
+`npm run clean:state -- <dir>` applies the shipped predicates (`nonNewsReason`, `dedupeStories`, the same functions the
+worker calls) to a copy of the published `state.json` and `latest.json`; no rescoring, themes are not stored. Every drop
+prints with its URL and reason. Run once after #16 on 2026-09-09: 34 stories dropped, 30 copies collapsed, published by
+force-pushing the two files to `gh-pages` between ticks.
+
 ## Result
 
 Six batches: 1,522 lensed → 766 (conflict 994 → 459, disaster 399 → 238, unrest 119 → 61, displacement 10 → 8).
