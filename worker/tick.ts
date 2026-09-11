@@ -314,6 +314,25 @@ export function dedupeStories<T extends { t: string; u: string }>(list: T[]): T[
   return list.filter(s => { if (seenU.has(s.u)) return false; const tk = titleTokens(s.t); if (keptT.some(k => sameStory(k, tk))) return false; seenU.add(s.u); keptT.push(tk); return true; });
 }
 
+/**
+ * State written by an earlier lens set. A lens is only ever removed from the end (indices are positional in the
+ * snapshot), so window entries are truncated and stories on a removed lens are dropped; ring, cursor, baselines and
+ * tone sums are untouched. This is the one mechanism: without it the first snapshot after a removal sums a four-wide
+ * window into a three-wide array, fails its own guard and the tick stalls, and stories on the removed lens would sit in
+ * the panel indefinitely. Runs on every load and is idempotent. A hand-edited entry missing its arrays is repaired.
+ */
+export function migrateState(state: State): number {
+  let dropped = 0; const n = LENSES.length;
+  for (const cs of Object.values(state.countries)) {
+    cs.win ??= []; cs.stories ??= [];
+    for (const w of cs.win) if (w.lens.length > n) w.lens = w.lens.slice(0, n);
+    const before = cs.stories.length;
+    cs.stories = cs.stories.filter(s => s.l < n);
+    dropped += before - cs.stories.length;
+  }
+  return dropped;
+}
+
 export function snapshotFrom(state: State, at: string, res: BatchResult, source = 'gdelt-gkg-2.1-english'): Snapshot {
   const countries: Record<string, CountrySnap> = {};
   for (const [iso, cs] of Object.entries(state.countries)) {
@@ -330,17 +349,18 @@ export function snapshotFrom(state: State, at: string, res: BatchResult, source 
 }
 
 // ---------- hours ----------
-export interface HoursDoc { date: string; hours: Record<string, Record<string, { n: number; lens: number[]; zsum: number; k: number }>> }
+/** `lenses` names the lens order the buckets were written in; a doc without it predates 2026-09-11 and is four wide. */
+export interface HoursDoc { date: string; lenses?: string[]; hours: Record<string, Record<string, { n: number; lens: number[]; zsum: number; k: number }>> }
 export function accumulateHours(doc: HoursDoc | undefined, snap: Snapshot): HoursDoc {
   const date = snap.tick.slice(0, 10), hour = snap.tick.slice(11, 13);
-  const d: HoursDoc = doc && doc.date === date ? doc : { date, hours: {} };
+  const d: HoursDoc = doc && doc.date === date ? doc : { date, lenses: LENSES.map(l => l.id), hours: {} };
   const bucket = (d.hours[hour] ??= {});
   for (const [iso, c] of Object.entries(snap.countries)) {
     if (c.n === 0 && !(iso in bucket)) continue;
     const b = (bucket[iso] ??= { n: 0, lens: new Array(LENSES.length).fill(0), zsum: 0, k: 0 });
     // window counts overlap between batches; store the batch's own contribution: latest window entry
     b.k++; b.zsum += c.z;
-    b.n = Math.max(b.n, c.n); b.lens = b.lens.map((v, i) => Math.max(v, c.lens[i]));
+    b.n = Math.max(b.n, c.n); b.lens = c.lens.map((v, i) => Math.max(b.lens[i] ?? 0, v));   // c.lens is the current width; an older bucket may be wider
   }
   return d;
 }
@@ -373,6 +393,8 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
   const statePath = join(dataDir, 'state.json');
   const state: State = existsSync(statePath) ? JSON.parse(readFileSync(statePath, 'utf8')) : emptyState();
   state.pending ??= [];
+  const migrated = migrateState(state);
+  if (migrated) log(`migrated state: ${migrated} stories on a removed lens dropped`);
   const latest = await latestBatchId(fetchFn);
   const { slots, jumped } = slotsToProcess(state.last_batch, latest);
   if (jumped) { state.skipped.push(jumped); log(`jumped over ${jumped}`); }

@@ -16,7 +16,7 @@
 
 import { readFileSync, writeFileSync, copyFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { nonNewsReason, dedupeStories, type State } from '../worker/tick.ts';
+import { nonNewsReason, dedupeStories, migrateState, type State } from '../worker/tick.ts';
 import { isSnapshot, type Snapshot, type Story } from '../shared/snapshot.ts';
 
 const dir = process.argv[2];
@@ -48,6 +48,8 @@ function stories<T>(where: string, v: unknown): T[] {
 }
 
 const state = JSON.parse(readFileSync(join(dir, 'state.json'), 'utf8')) as State;
+const migrated = migrateState(state);   // the same load-time migration the worker runs
+if (migrated) console.log(`migrated: ${migrated} stories on a removed lens dropped`);
 for (const [iso, c] of Object.entries(state.countries)) c.stories = clean(stories(`state.countries.${iso}.stories`, c.stories), iso);
 
 const snap = JSON.parse(readFileSync(join(dir, 'latest.json'), 'utf8')) as Snapshot;

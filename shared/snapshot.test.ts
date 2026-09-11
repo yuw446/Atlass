@@ -9,9 +9,9 @@ const valid = (): Snapshot => ({
   source: 'gdelt-gkg-2.1-english',
   totals: { articles: 10, placed: 8, lensed: 3, capped: 0, unmapped: 0, dropped_urls: 0, dupes: 0 },
   window: 8,
-  lenses: ['conflict', 'disaster', 'unrest', 'displacement'],
+  lenses: ['conflict', 'disaster', 'unrest'],
   countries: {
-    SD: { n: 2, lens: [2, 0, 0, 0], dom: 0, att: 0.5, z: 2, tone: -4.1,
+    SD: { n: 2, lens: [2, 0, 0], dom: 0, att: 0.5, z: 2, tone: -4.1,
           top: [{ t: 'Headline', u: 'https://x.example/a', d: 'x.example', l: 0, lat: 15.6, lon: 32.5, at: '2026-09-07T15:45:00Z' }] },
   },
   sparks: [[15.6, 32.5, 0]],

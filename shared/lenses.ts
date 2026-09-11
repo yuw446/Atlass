@@ -1,8 +1,11 @@
 // Lens definitions shared by the worker (scoring) and the frontend (colours, legend).
 // A lens is a small set of GDELT GKG themes chosen because the topic is spatial by nature.
 // Theme names verified against GDELT's LOOKUP-GKGTHEMES.TXT on 2026-09-07.
+// Displacement (REFUGEES, DISPLACED, EVACUATION, SELF_IDENTIFIED_HUMANITARIAN_CRISIS) was dropped on 2026-09-11: eight
+// lensed stories across six batches is too few to score, label or learn from. Lens indices are positional in the
+// snapshot, so a lens is only ever removed from the end; the worker migrates stored state on load.
 
-export type LensId = 'conflict' | 'disaster' | 'unrest' | 'displacement';
+export type LensId = 'conflict' | 'disaster' | 'unrest';
 
 export interface Lens {
   id: LensId;
@@ -38,11 +41,6 @@ export const LENSES: readonly Lens[] = [
   {
     id: 'unrest', label: 'Unrest', color: '#B06CE0',
     themes: ['PROTEST', 'STRIKE'],
-    prefixes: [],
-  },
-  {
-    id: 'displacement', label: 'Displacement', color: '#3DBFB0',
-    themes: ['REFUGEES', 'DISPLACED', 'EVACUATION', 'SELF_IDENTIFIED_HUMANITARIAN_CRISIS'],
     prefixes: [],
   },
 ];
