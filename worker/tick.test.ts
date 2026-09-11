@@ -87,6 +87,12 @@ test('articleFrom: publisher sections, review slugs and entertainment headlines 
   assert.equal(at('https://e2.example/entertainment/storm-movie').reject, 'section');
   assert.equal(at('https://e2.example/2026/09/the-storm-review/').reject, 'section');
   assert.equal(at('https://e2.example/the-storm-review-andrew-garfield/').article?.lens, 1, '"review" mid-slug is left alone (a known ceiling)');
+  // "review" mid-slug in news, all seen live or on the ring; a rule fitted to one day's slugs dropped the NZ flood story (2026-09-11)
+  assert.equal(at('https://e2.example/stories/flood-protection-and-drainage-rates-review-consultation-extended.htm').article?.lens, 1);
+  assert.equal(at('https://e2.example/news/council-members-seek-utility-review-of-proposed-site/').article?.lens, 1);
+  assert.equal(at('https://e2.example/news/house-urged-to-review-storm-defences-amid-scrutiny/').article?.lens, 1);
+  assert.equal(at('https://e2.example/news/safety-review-launched-after-bridge-collapse/').article?.lens, 1);
+  assert.equal(at('https://e2.example/news/officials-review-damage-after-quake/').article?.lens, 1);
   assert.equal(at('https://e2.example/news/hurricane-preview-2026').article?.lens, 1, 'preview is not review');
   const titled = (t: string) => { const c = [...row]; c[26] = `<PAGE_TITLE>${t}</PAGE_TITLE>`; return articleFrom(c, AT, totals); };
   assert.equal(titled('Storm Season 2 Trailer Drops').reject, 'section');
