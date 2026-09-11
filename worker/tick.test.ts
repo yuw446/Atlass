@@ -4,11 +4,11 @@ import { readFileSync, existsSync, mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
-  unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState, articleFrom,
+  unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState, articleFrom, migrateState,
   updateBaseline, seedBaselines, zOf, attOf, slotsToProcess, batchToIso, run, isSparkOnly, decodeEntities,
   zeroTotals, PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
 } from './tick.ts';
-import { isSnapshot } from '../shared/snapshot.ts';
+import { isSnapshot, type CountrySnap } from '../shared/snapshot.ts';
 
 const ID = '20260908233000';
 const AT = batchToIso(ID);
@@ -68,8 +68,7 @@ test('processBatch on the fixture: gate passes, edge rows behave as designed', (
   assert.equal(ng.length, DOMAIN_CAP);
   assert.ok(byTitle(ng, 'Cap 6'), 'the highest-scoring article survives the cap');
 
-  const no = res.byCountry.get('NO') ?? [];
-  assert.equal(byTitle(no, 'Norway evacuation')!.lens, 3, 'override maps FIPS NO and the lens is displacement');
+  assert.equal(res.byCountry.get('NO'), undefined, 'Norway evacuation is not lensed: displacement was dropped (the FIPS override itself is pinned in codes.test.ts)');
 
   const sn = [...res.byCountry.keys()].find(isSparkOnly);
   assert.equal(sn, '~SN');
@@ -159,9 +158,9 @@ test('applyBatch + snapshotFrom: seeds every polygon country, lens sums to n, st
   assert.equal(state.countries['~SN'], undefined, 'spark-only countries never enter state');
   const snap = snapshotFrom(state, AT, res);
   assert.equal(isSnapshot(snap), true);
-  assert.equal(snap.lenses.length, 4);
+  assert.equal(snap.lenses.length, 3);
   for (const c of Object.values(snap.countries)) assert.equal(c.lens.reduce((a, b) => a + b, 0), c.n);
-  assert.equal(snap.countries.SD.n, 2); assert.deepEqual(snap.countries.SD.lens, [2, 0, 0, 0]); assert.equal(snap.countries.SD.dom, 0);
+  assert.equal(snap.countries.SD.n, 2); assert.deepEqual(snap.countries.SD.lens, [2, 0, 0]); assert.equal(snap.countries.SD.dom, 0);
   assert.ok(snap.countries.SD.top.some(s => s.t === 'Country only, no coords' && s.lat === undefined));
   assert.equal(snap.countries.PS.n, 1);
   assert.equal(snap.countries.FR.n, 0); assert.equal(snap.countries.FR.dom, -1);
@@ -180,6 +179,58 @@ test('applyBatch + snapshotFrom: seeds every polygon country, lens sums to n, st
   assert.equal(new Set(sd.stories.map(s => s.u)).size, sd.stories.length);
   const snap2 = snapshotFrom(state, AT, res);
   assert.equal(snap2.countries.SD.n, 2 * WINDOW);
+});
+
+test('migrateState: state written with a fourth lens is truncated and its stories dropped; ring, cursor, baseline and tone sums are untouched', () => {
+  const state = emptyState(); state.last_batch = ID; state.ring = [['h1']];
+  const mk = (l: number, n: number) => ({ t: `story ${n}`, u: `https://x.example/${n}`, d: 'x.example', l, at: AT });
+  state.countries.SD = { win: [{ at: AT, lens: [1, 0, 0, 2], tsum: 3.2, tn: 2 }, { at: AT, lens: [0, 1, 0, 0], tsum: 0, tn: 0 }], stories: [mk(0, 1), mk(3, 2), mk(2, 3), mk(3, 4)], bl: { fast: 0, base: 0, var: 0.5, ticks: 5 } };
+  state.countries.XX = { bl: { fast: 0, base: 0, var: 0.5, ticks: 1 } } as never;   // a hand-edited entry missing its arrays
+  assert.equal(migrateState(state), 2);
+  assert.deepEqual(state.countries.SD.win.map(w => w.lens), [[1, 0, 0], [0, 1, 0]]);
+  assert.deepEqual(state.countries.SD.stories.map(s => s.l), [0, 2]);
+  assert.deepEqual(state.ring, [['h1']], 'ring hashes untouched');
+  assert.equal(state.last_batch, ID, 'cursor untouched');
+  assert.deepEqual(state.countries.SD.bl, { fast: 0, base: 0, var: 0.5, ticks: 5 }, 'baseline untouched');
+  assert.deepEqual(state.countries.SD.win.map(w => [w.at, w.tsum, w.tn]), [[AT, 3.2, 2], [AT, 0, 0]], 'tone sums untouched');
+  assert.deepEqual([state.countries.XX.win, state.countries.XX.stories], [[], []], 'missing arrays repaired');
+  const snap = snapshotFrom(state, AT, { byCountry: new Map(), sparks: [], totals: zeroTotals() });
+  assert.ok(isSnapshot(snap), 'three-wide lens arrays pass the guard');
+  assert.deepEqual(snap.countries.SD.lens, [1, 1, 0]);
+  assert.equal(migrateState(state), 0, 'idempotent');
+  // hours: a same-day doc written four wide keeps its history as written; the current hour takes the current width, no NaN
+  const hour = AT.slice(11, 13), prev = String(Number(hour) - 1).padStart(2, '0');
+  const doc = accumulateHours({ date: AT.slice(0, 10), hours: { [prev]: { SD: { n: 1, lens: [0, 0, 0, 1], zsum: 0, k: 1 } }, [hour]: { SD: { n: 3, lens: [1, 1, 0, 1], zsum: 0, k: 1 } } } }, snap);
+  assert.equal(doc.date, AT.slice(0, 10), 'same-day doc is kept');
+  assert.equal(doc.lenses, undefined, 'an old doc is not stamped: its early hours are still four wide');
+  assert.deepEqual(doc.hours[hour].SD.lens, [1, 1, 0]);
+  assert.deepEqual(doc.hours[prev].SD.lens, [0, 0, 0, 1], 'history is left as written');
+  const narrower = accumulateHours({ date: AT.slice(0, 10), hours: { [hour]: { SD: { n: 1, lens: [1, 1], zsum: 0, k: 1 } } } }, snap);
+  assert.deepEqual(narrower.hours[hour].SD.lens, [1, 1, 0], 'a narrower bucket widens without NaN');
+  const fresh = accumulateHours(undefined, snap);
+  assert.deepEqual(fresh.lenses, ['conflict', 'disaster', 'unrest'], 'a new doc records the lens order it is written in');
+});
+
+test('run migrates a state.json written with four lenses: the log says so, top[] loses lens-3 stories, state.json is rewritten three wide', async () => {
+  const site = mkdtempSync(join(tmpdir(), 'atlas-'));
+  const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
+  await run(site, fetchFn, () => {});
+  const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  for (const [iso, cs] of Object.entries(state.countries)) {
+    for (const w of cs.win) w.lens.push(iso === 'SD' ? 2 : 0);
+    cs.stories.push({ t: `displaced ${iso}`, u: `https://d.example/${iso}`, d: 'd.example', l: 3, s: 9, at: AT });
+  }
+  state.last_batch = '20260908231500';   // rewind one slot so the batch is processed again
+  const { writeFileSync: write } = await import('node:fs');
+  write(join(site, 'data/state.json'), JSON.stringify(state));
+  const logs: string[] = [];
+  assert.equal(await run(site, fetchFn, s => logs.push(s), { now: () => Date.parse(AT) + 24 * 3600_000 }), 0);
+  assert.ok(logs.some(l => l.startsWith('migrated state: ')), logs.join(' | '));
+  const latest = JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8'));
+  assert.ok(isSnapshot(latest));
+  for (const c of Object.values(latest.countries) as CountrySnap[]) { assert.equal(c.lens.length, 3); assert.ok(c.top.every(s => s.l < 3)); }
+  const after: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  assert.ok(Object.values(after.countries).every(cs => cs.win.every(w => w.lens.length === 3) && cs.stories.every(s => s.l < 3)));
 });
 
 test('story ring dedupes syndicated headlines across URLs, site tags and edits, keeping the strongest signal first', () => {

@@ -73,7 +73,8 @@ force-pushing the two files to `gh-pages` between ticks.
 
 ## Result
 
-Six batches: 1,522 lensed → 766 (conflict 994 → 459, disaster 399 → 238, unrest 119 → 61, displacement 10 → 8).
+Six batches: 1,522 lensed → 766 (conflict 994 → 459, disaster 399 → 238, unrest 119 → 61, displacement 10 → 8; the
+displacement lens was dropped on 2026-09-11 on that count).
 Labelled batch: 24% → 54% precision at 89% recall; conflict 47%, disaster 67%, unrest 67%.
 Lost on-topic stories (six): Kiev's Patriot request, the NDC/Sowore piece on the Peter Obi convoy attack, Sokoto's
 election-violence warning (each names its subject once or twice in 500 to 800 words), a Netanyahu Oct. 7 piece, a

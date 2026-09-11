@@ -2,8 +2,8 @@
 
 **The news, by place.** News is organised by topic; Atlas re-projects it onto the globe so the people and the
 environment behind a story stay in frame. Every 15 minutes about a thousand stories from GDELT's Global Knowledge
-Graph land on the country they are about. Four lenses, chosen because those topics are spatial by nature: conflict,
-disaster and climate, unrest, displacement. Click a country to read what is being written about it right now.
+Graph land on the country they are about. Three lenses, chosen because those topics are spatial by nature: conflict,
+disaster and climate, unrest. Click a country to read what is being written about it right now.
 
 Live: **https://yuw446.github.io/Atlass/** · data: `https://yuw446.github.io/Atlass/data/latest.json`
 

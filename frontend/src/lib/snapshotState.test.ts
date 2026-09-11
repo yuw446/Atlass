@@ -7,7 +7,7 @@ const T0 = Date.parse('2026-09-09T00:30:00Z');
 const snap = (tick = '2026-09-09T00:30:00Z'): Snapshot => ({
   schema: 1, tick, generated_at: tick, source: 'test',
   totals: { articles: 1, placed: 1, lensed: 1, capped: 0, unmapped: 0, dropped_urls: 0, dupes: 0 },
-  window: 8, lenses: ['conflict', 'disaster', 'unrest', 'displacement'], countries: {}, sparks: [],
+  window: 8, lenses: ['conflict', 'disaster', 'unrest'], countries: {}, sparks: [],
 });
 
 test('ok body → ok; age past 60 minutes → stale; clock flips ok to stale', () => {
@@ -40,6 +40,11 @@ test('fetch error keeps the last good snapshot; 404 with nothing stored is nodat
   assert.equal(nodata.status, 'nodata'); assert.equal(nodata.snapshot, null);
   const later = reduce(good, { type: 'notfound', now: T0 });
   assert.equal(later.status, 'error'); assert.equal(later.snapshot, good.snapshot);
+});
+
+test('a four-lens snapshot restored from localStorage is still accepted: the guard reads the width from the body', () => {
+  const body = { ...snap(), lenses: ['conflict', 'disaster', 'unrest', 'displacement'], countries: { SD: { n: 1, lens: [0, 0, 0, 1], dom: 3, att: 1, z: 4, tone: null, top: [] } } };
+  assert.equal(reduce(initialState, { type: 'restore', body, now: T0 }).status, 'ok');
 });
 
 test('restore fills an empty state only, and only with a valid body', () => {

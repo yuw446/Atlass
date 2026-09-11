@@ -33,11 +33,14 @@ frontend/  src/lib (pure, tested): snapshotState, fill, tween, text, densify; ho
 **Data flow.** `lastupdate.txt` → GKG zip → `worker/tick.ts` → `data/latest.json`, `data/hours/`, `data/state.json`
 on the `gh-pages` branch, which also holds the built site. Pages serves both from the same origin. The page polls
 `./data/latest.json` every minute. The design of record (approved and eng-reviewed, with the amendments index) is at
-`~/.gstack/projects/yuw446-Atlass/faye-claude-project-revival-core-e38374-design-20260907-115409.md`.
+`~/.gstack/projects/yuw446-Atlass/faye-claude-project-revival-core-e38374-design-20260907-115409.md`. It predates the
+2026-09-11 drop of the displacement lens; `LIMITATIONS.md` is authoritative for the lens set.
 
 ## Rules that are load-bearing
 
-- **Lenses, not layers.** Four lenses in `shared/lenses.ts`, chosen because the topic is spatial. Do not add a layer
+- **Lenses, not layers.** Three lenses in `shared/lenses.ts`, chosen because the topic is spatial (displacement was
+  dropped on 2026-09-11: too few stories to score or learn from). Lens indices are positional in the snapshot, so a
+  lens is only ever removed from the end and `migrateState()` truncates stored state on load. Do not add a layer
   registry, a taxonomy, or a heatmap. A lens needs ≥ 2 theme occurrences and ≥ 1 per 200 words; `support` themes only confirm, `veto` themes remove;
   `MANMADE_DISASTER_IMPLIED` and `NATURAL_DISASTER_ICE`/`ICY`/`CHILL` never count. Entertainment sections and
   headlines are dropped in the worker (`NON_NEWS_PATH`, `NON_NEWS_TITLE`).

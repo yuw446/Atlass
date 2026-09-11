@@ -94,7 +94,7 @@ export default function StoryPanel() {
         ) : !country || (total === 0 && older === 0) ? (
           <div style={{ color: 'rgba(255,255,255,0.4)', fontSize: 12, fontFamily: 'monospace', lineHeight: 1.7 }}>
             No stories under a lens in the last two hours.
-            <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.25)' }}>Lenses: conflict, disaster & climate, unrest, displacement. Trade and policy are not shown.</div>
+            <div style={{ marginTop: 6, color: 'rgba(255,255,255,0.25)' }}>Lenses: conflict, disaster & climate, unrest. Trade and policy are not shown.</div>
           </div>
         ) : (
           <>

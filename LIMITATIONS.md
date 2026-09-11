@@ -40,6 +40,17 @@ copies are dropped per batch and no longer inflate `n`, the fill, or the sparks.
 / "14 killed in blast at arms depot in northwest Syria") share too few words to merge; a wire copy that arrives two
 batches later with an edited headline is caught only in the panel ring, not in the counts.
 
+### Displacement is not a lens
+Dropped on 2026-09-11. `REFUGEES`, `DISPLACED`, `EVACUATION` and `SELF_IDENTIFIED_HUMANITARIAN_CRISIS` produced eight
+lensed stories across six batches, too few to score reliably, to label, or to learn from. Displacement news still
+reaches the globe when it also carries conflict or disaster themes, which is most of it. The worker truncates state
+written with the fourth lens on load; the 32 stored stories on it were dropped at the first tick after the change.
+Tone and the attention baseline keep those stories' contribution until the two-hour window and the one-week EMA
+roll over. `data/hours/` files written before the change have four-wide buckets and no `lenses` field; files written
+after carry `lenses` so the order is never ambiguous again. A reader of the history must index `lens[i]` for
+`i < LENSES.length`, never sum the whole array, and sort the hour keys, which JSON objects enumerate as `"10"`..`"23"`
+before `"00"`..`"09"`.
+
 ### English-language sources only
 GDELT's main GKG feed is English. A separate translated feed covering 65 languages exists and is a later addition.
 The legend says "English-language media".
