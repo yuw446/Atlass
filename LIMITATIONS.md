@@ -18,7 +18,9 @@ vetoes one, and `NATURAL_DISASTER_ICE`/`ICY`/`CHILL` never count (ICE the agency
 review slugs and headline words drop the article; a domain cap stops aggregators dominating. On a labelled batch this
 took lens precision from 24% to 54% at 89% recall.
 **Still wrong, by class:** anniversary and history pieces carry the same themes as live conflict; a film about a
-historical revolt survives when its outlet has no section in the URL and no review word in the headline; crime and
+historical revolt survives when its outlet has no section in the URL and no review word in the headline, and so does
+a review whose slug has "review" in the middle (`the-uprising-review-andrew-garfield`): a mid-slug rule fitted to one
+day's slugs dropped a live New Zealand flood story for two film reviews caught, so there is none; crime and
 court stories reach Conflict through `TERROR` and `MILITARY`; market stories are lensed by the war they cite; local
 weather forecasts reach Disaster. No GKG field separates these: GCAM's culture dimension scores real war news as high
 as reviews. Country placement has not been checked.
