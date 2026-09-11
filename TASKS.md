@@ -48,9 +48,11 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
 - ⬜ **Precision check, country**: 50 placed stories, right country ≥ 40/50, same file
 - ⬜ **Week-one measurements**: Actions minutes used, tick-age median and p90, gh-pages size (same file)
 - ⬜ **Drift warnings**: `warnings[]` in the snapshot when placement or lens ratios deviate > 50% from the 7-day mean; glyph in the header
-- ⬜ **Time scrubber**: replay on `data/hours/` (retained since the first tick); frontend-only
+- ⬜ **Time scrubber**: replay on `data/hours/` (retained since the first tick); frontend-only. Docs before 2026-09-11 are
+  four wide with no `lenses` field; index `lens[i]` for `i < LENSES.length` and sort hour keys (see LIMITATIONS.md)
 - ⬜ **Country-pair arcs** from the event export's actor codes (the brief's macro scale)
 - ⬜ **Translated feed** (65 languages) as a second worker input
+- ✅ **Displacement lens dropped** (2026-09-11): eight lensed stories in six batches; `migrateState()` handles stored state
 - ⬜ **Health lens**, only if a week of data shows a narrow enough theme set
 - ⬜ **Hex region view** (coordinates are already in the snapshot)
 - ⬜ **Correspondent briefing**, grounded only in `top[]` sources, only after the read-only panel proves people click
