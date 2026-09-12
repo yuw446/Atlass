@@ -30,8 +30,10 @@ Endpoints on `https://atlas-tick-dispatch.yuw446-atlas.workers.dev`:
    (dashboard → Workers & Pages → atlas-tick-dispatch → Logs) show one line per dispatch with the HTTP status; 204 means queued.
 
 If the chain ever stops (`/status` says "not armed"), the next cron tick re-arms it within 15 minutes; `/arm` does the
-same at once. To test the repair, delete the alarm from the dashboard (Durable Objects → Ticker) and watch `/status`
-come back on the next quarter hour. The token can be revoked at any time from the GitHub settings page; the worker
+same at once. There is no dashboard control for a Durable Object alarm, so to test the repair path add a temporary
+`/disarm` route that calls `this.ctx.storage.deleteAlarm()`, deploy, confirm `/status` says "not armed" and then
+`next …` on the following quarter hour, and remove the route before the next deploy: it needs no secret, and left in
+place it would let anyone drop a slot. The token can be revoked at any time from the GitHub settings page; the worker
 then logs HTTP 401 and does nothing.
 
 ## Gotchas seen on first deploy (2026-09-09)
@@ -41,7 +43,7 @@ then logs HTTP 401 and does nothing.
 - Cron Triggers on this new account were registered and listed by `/schedules` but did not invoke the worker for
   the first six hours (zero invocations in `workersInvocationsAdaptive`, while an HTTP handler running the same code
   worked). Hence the alarm. The cron came alive at 20:00 UTC the same day, and because `scheduled()` then also
-  dispatched, every slot sent two `workflow_dispatch` calls 30 s apart until 2026-09-12: about 100 extra one-minute
+  dispatched, every slot sent two `workflow_dispatch` calls 30 s apart until this fix was deployed: about 100 extra one-minute
   jobs a day, the whole 3,000-minute Actions budget. `scheduled()` now only re-arms.
 - `wrangler secret put` before the first deploy asks to create the worker; answer Y. The secret survives later deploys.
 

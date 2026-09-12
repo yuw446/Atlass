@@ -61,9 +61,9 @@ batch holds one or two lensed stories for a typical country, which is why the wi
 
 ### Publish race, lag, and clock drift in the feed
 `lastupdate.txt` is written before the GKG file finishes uploading, so a run minutes after the quarter hour can see a
-404 for the latest file; the worker retries four times 30 seconds apart, then leaves it for the next run. Until
-2026-09-12 those retries went to the `data.gdeltproject.org` CDN, which caches a 404 for an hour, so they could only
-repeat the first miss; the worker now reads the origin bucket, whose 404 is not cached. The GKG
+404 for the latest file; the worker retries four times 30 seconds apart, then leaves it for the next run. Those
+retries used to go to the `data.gdeltproject.org` CDN, which caches a 404 for an hour, so they could only repeat the
+first miss; the worker now reads the origin bucket, whose 404 is not cached. The GKG
 file can also lag the export file by more than half an hour (seen 2026-09-09: 13:30, 13:45 and 14:00 exports
 present, GKG files absent, index already at 14:00). Missing non-latest slots therefore go to `state.pending` and are
 retried at the start of every run for two hours before being recorded as skipped; a late batch feeds the window and
@@ -83,8 +83,8 @@ On this private repository it ran the tick twice in the first eleven hours inste
 **In place:** `infra/tick-dispatch/`, a Cloudflare Worker that calls the workflow-dispatch API every 15 minutes
 from a Durable Object alarm (punctual to the second; the owner deploys it with a repo-scoped token). Cloudflare's
 Cron Trigger on the same grid slept through its first six hours, then fired; it now only re-arms the alarm if the
-chain has died and never dispatches (from 2026-09-09 to 2026-09-12 it did, and every slot ran the tick twice: about
-100 extra billed minutes a day). The workflow's own `schedule:` stays as a second fallback. When a run does
+chain has died and never dispatches (from 2026-09-09 until the fix was deployed it did, and every slot ran the tick
+twice: about 100 extra billed minutes a day). The workflow's own `schedule:` stays as a second fallback. When a run does
 happen after a gap it catches up 32 slots (eight hours); older gaps are recorded in `state.skipped` and stay holes in
 `hours/`. Expected tick age with the dispatcher is under ten minutes at the median.
 

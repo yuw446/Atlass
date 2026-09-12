@@ -4,7 +4,7 @@
 // alarm at a time, re-armed from inside alarm() before the dispatch so a failed dispatch can never break the chain.
 // Cloudflare's Cron Trigger is on the same grid but is NOT a second clock: it only re-arms the alarm if the chain
 // has died (it slept through its first six hours on this account, then came alive on 2026-09-09 and dispatched
-// from here as well, doubling the Actions bill until 2026-09-12). Only alarm() dispatches.
+// from here as well, doubling the Actions bill until this fix was deployed). Only alarm() dispatches.
 // Fires at :02, :17, :32, :47 so GDELT has two minutes to finish publishing the batch.
 //
 // GET /arm      arms the alarm if none is set (idempotent, harmless, no secret needed)
