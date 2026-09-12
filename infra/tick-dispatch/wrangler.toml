@@ -4,7 +4,7 @@ compatibility_date = "2026-09-01"
 workers_dev = true    # a workers.dev URL for /arm and /status; everything else answers 404
 preview_urls = false
 
-# Kept as a re-arm path only: Cloudflare cron triggers never fired on this account (see README).
+# Re-arm path only: scheduled() calls arm(), never dispatch(). The Durable Object alarm is the clock (see README).
 [triggers]
 crons = ["2,17,32,47 * * * *"]
 
