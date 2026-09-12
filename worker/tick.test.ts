@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import {
   unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState, articleFrom, migrateState,
   updateBaseline, seedBaselines, zOf, attOf, slotsToProcess, batchToIso, run, isSparkOnly, decodeEntities,
-  zeroTotals, PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
+  zeroTotals, GDELT, PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
 } from './tick.ts';
 import { isSnapshot, type CountrySnap } from '../shared/snapshot.ts';
 
@@ -213,7 +213,7 @@ test('migrateState: state written with a fourth lens is truncated and its storie
 
 test('run migrates a state.json written with four lenses: the log says so, top[] loses lens-3 stories, state.json is rewritten three wide', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
-  const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
+  const fetchFn = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
   await run(site, fetchFn, () => {});
   const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
   for (const [iso, cs] of Object.entries(state.countries)) {
@@ -382,13 +382,13 @@ test('accumulateHours buckets by hour and accumulates across batches', () => {
 // ---------- run() with a stubbed fetch ----------
 const stub = (map: Record<string, Fetched>) => async (url: string): Promise<Fetched> => map[url] ?? { status: 404 };
 const lastupdate = (id: string) => Buffer.from(`1 x http://data.gdeltproject.org/gdeltv2/${id}.export.CSV.zip\n2 x http://.../${id}.mentions.CSV.zip\n3 x http://data.gdeltproject.org/gdeltv2/${id}.gkg.csv.zip\n`);
-const G = 'https://data.gdeltproject.org/gdeltv2/';
 
 test('run writes latest.json, hours and state; a second run on the same batch changes nothing', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
   const logs: string[] = [];
-  const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
+  const fetchFn = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
   assert.equal(await run(site, fetchFn, s => logs.push(s)), 0);
+  assert.ok(logs.some(l => l.includes('source https://storage.googleapis.com/')), 'the log names the host that served the run');
   const latest = JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8'));
   assert.equal(isSnapshot(latest), true);
   assert.equal(latest.tick, AT);
@@ -403,7 +403,7 @@ test('run writes latest.json, hours and state; a second run on the same batch ch
 
 test('run walks a gap: old missing slots are skipped, the latest is processed', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
-  const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
+  const fetchFn = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
   const dayLater = () => Date.parse(AT) + 24 * 3600_000;   // every slot is far older than the grace
   await run(site, fetchFn, () => {}, { now: dayLater });
   const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
@@ -420,7 +420,7 @@ test('run walks a gap: old missing slots are skipped, the latest is processed', 
 test('a young missing slot goes to pending, is retried next run, and a late arrival is applied without moving the cursor back', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
   const MISSING = '20260908231500';
-  const files: Record<string, Fetched> = { [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } };
+  const files: Record<string, Fetched> = { [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } };
   const fetchFn = stub(files);
   const soon = () => Date.parse(AT) + 5 * 60_000;   // five minutes after the latest batch: the gap is young
   await run(site, fetchFn, () => {}, { now: soon });
@@ -435,7 +435,7 @@ test('a young missing slot goes to pending, is retried next run, and a late arri
   assert.deepEqual(s.skipped, []);
   assert.equal(s.last_batch, ID, 'the walk still reached the latest');
   // The missing file appears. Next run retries it first and applies it; the cursor stays at the latest.
-  files[`${G}${MISSING}.gkg.csv.zip`] = { status: 200, buf: ZIP };
+  files[`${GDELT}${MISSING}.gkg.csv.zip`] = { status: 200, buf: ZIP };
   const before = JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8')).tick;
   await run(site, fetchFn, s => logs.push(s), { now: soon });
   s = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
@@ -444,7 +444,7 @@ test('a young missing slot goes to pending, is retried next run, and a late arri
   assert.equal(JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8')).tick, before, 'latest.json is not rewritten by an older batch');
   assert.ok(existsSync(join(site, 'data/hours/2026-09-08.json')));
   // A slot that stays missing past the grace is skipped for good.
-  files[`${G}${MISSING}.gkg.csv.zip`] = { status: 404 };
+  files[`${GDELT}${MISSING}.gkg.csv.zip`] = { status: 404 };
   s.pending = [MISSING]; writeFileSync(join(site, 'data/state.json'), JSON.stringify(s));
   await run(site, fetchFn, () => {}, { now: () => Date.parse(AT) + 3 * 3600_000 });
   s = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
@@ -454,7 +454,7 @@ test('a young missing slot goes to pending, is retried next run, and a late arri
 
 test('run exits non-zero when the latest zip is unavailable', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
-  const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 503 } });
+  const fetchFn = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 503 } });
   await assert.rejects(run(site, fetchFn, () => {}), /HTTP 503/);
   assert.equal(existsSync(join(site, 'data/latest.json')), false);
 });
@@ -464,7 +464,7 @@ test('latest zip not yet published: retries, then processes it once it appears',
   let calls = 0;
   const fetchFn = async (url: string): Promise<Fetched> => {
     if (url.endsWith('lastupdate.txt')) return { status: 200, buf: lastupdate(ID) };
-    if (url === `${G}${ID}.gkg.csv.zip`) return ++calls < 3 ? { status: 404 } : { status: 200, buf: ZIP };
+    if (url === `${GDELT}${ID}.gkg.csv.zip`) return ++calls < 3 ? { status: 404 } : { status: 200, buf: ZIP };
     return { status: 404 };
   };
   const logs: string[] = [];
@@ -476,7 +476,7 @@ test('latest zip not yet published: retries, then processes it once it appears',
 
 test('latest zip never appears: run ends cleanly without advancing, so the next cron retries', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
-  const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) } });
+  const fetchFn = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) } });
   assert.equal(await run(site, fetchFn, () => {}, { latestRetries: 2, retryDelayMs: 0 }), 0);
   assert.equal(existsSync(join(site, 'data/latest.json')), false);
   const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
@@ -491,7 +491,7 @@ test('a gated batch is recorded as skipped and last_batch still advances', async
   const name = Buffer.from('x.csv'); const header = Buffer.alloc(30);
   header.writeUInt32LE(0x04034b50, 0); header.writeUInt16LE(8, 8); header.writeUInt32LE(tiny.length, 22); header.writeUInt16LE(name.length, 26);
   const zip = Buffer.concat([header, name, deflateRawSync(tiny)]);
-  const fetchFn = stub({ [G + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${G}${ID}.gkg.csv.zip`]: { status: 200, buf: zip } });
+  const fetchFn = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: zip } });
   await run(site, fetchFn, () => {});
   const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
   assert.deepEqual(state.skipped, [ID]);

@@ -62,6 +62,9 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
 
 - GDELT publishes `lastupdate.txt` before the GKG upload finishes, and batch labels can run up to ten minutes ahead of
   wall-clock. The frontend clamps age at zero.
+- The tick reads the origin bucket `storage.googleapis.com/data.gdeltproject.org/` (`GDELT_ORIGIN`), not the
+  `data.gdeltproject.org` CDN: the CDN's 404 for an unpublished zip is `cache-control: public, max-age=3600`, so
+  every retry inside the hour got the cached miss; the bucket's 404 is `private, max-age=0`. Same paths, same bytes.
 - The repository is private on GitHub Pro. Pages works on private repos; the cron uses about 2,900 of 3,000 Actions
   minutes a month at one minute per tick. The tick job installs nothing so it stays fast.
 - GitHub's `schedule` trigger dropped 42 of the first 44 ticks on this private repo. The punctual trigger is
