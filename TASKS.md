@@ -1,6 +1,6 @@
 # ATLAS — Tasks & Progress
 
-> Last updated: 2026-09-09
+> Last updated: 2026-09-12
 > Stack: Node 24 worker (stdlib) · Vite + React 19 + react-globe.gl + Tailwind v4 · GitHub Actions + Pages
 > Design of record: `~/.gstack/projects/yuw446-Atlass/faye-claude-project-revival-core-e38374-design-20260907-115409.md`
 > Tests: `npm test` (node --test; 65 tests across shared/, worker/, frontend/src/lib). Render paths are checked by `/qa` on the deployed page.
@@ -40,6 +40,14 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
   so the imagery reads through. Preloaded from `index.html`. Night texture and a bump map not tried yet.
 - ⬜ Send the link to three people and write down what they say first
 
+## Collector strategy (decided 2026-09-11) is tracked as issues #19 to #35
+Keep GDELT as the source; learn the classifier from labels (DeepSeek flash judges offline, weights committed, the tick
+stays stdlib); cluster events from GDELT's embedding feed; Claude routines retrain weekly and audit daily. In dependency
+order: #19 origin bucket, #20 dispatcher double-fire, #21 labelled fixture and schema, #22 headline-first placement,
+#23 label script, #24 audit routine, #25 classifier code, #26 week-one measurement, #27 nightly labelling, #28 first
+model behind the gate, #29 country check, #30 and #31 clustering, #32 retrain routine, #33 remove the hand rules,
+#34 GDACS closed on measurement, #35 reserve stub. Start with #20: it is costing about 2,900 Actions minutes a month.
+
 ## Next, in order (after the link is out)
 - ✅ **Precision check, lens only** (2026-09-09): 221 lensed stories from one batch labelled by headline; 24% → 54% precision at 89% recall
   after the density rule, support/veto themes and the non-news filter (`docs/precision-check.md`; re-run with `npm run audit -- <batch id>`)
@@ -62,7 +70,8 @@ The March 2026 attempt (a conflict globe with hand-fed data) is superseded. Its 
 
 | Issue | Impact | Plan |
 |-------|--------|------|
-| GDELT tagging noise: about half of Conflict stories still off-lens (history, crime, markets); place vote unchecked | Wrong-lens or wrong-country story in the panel | Classes in `LIMITATIONS.md`; label 50 stories for country; `npm run audit` again after a week of data |
+| GDELT tagging noise: 54% lens precision measured; keyword rules at their ceiling | Wrong-lens or wrong-country story in the panel | Learned classifier and country check, issues #21 to #29 |
+| Tick dispatcher fires twice per slot | About 2,900 wasted Actions minutes a month; the repo is at or past its 3,000 | #20: one call removed in `infra/tick-dispatch`, then `wrangler deploy` |
 | GitHub `schedule` drops most runs (2 of 44 on night one) | Feed hours stale without the dispatcher | Deploy `infra/tick-dispatch/`; keepalive keeps the fallback alive |
 | Actions budget on Pro is tight (~2,900 of 3,000 min) | Overage or stopped cron at month end | Measure in week one; drop to */20 if needed |
 | "Multiple instances of Three.js" console warning | None visible; react-globe.gl bundles its own three | Align versions when upgrading |
