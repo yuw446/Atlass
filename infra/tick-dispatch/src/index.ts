@@ -1,12 +1,13 @@
 // Cloudflare Worker: a punctual clock that asks GitHub to run the tick workflow every 15 minutes.
 //
-// GitHub's own `schedule:` dropped 42 of the first 44 runs. Cloudflare Cron Triggers registered fine but never
-// invoked scheduled() on this account (a documented, ongoing Cloudflare fault in 2026), so the clock is a
-// Durable Object alarm instead: one object, one alarm at a time, re-armed from inside alarm() before the
-// dispatch so a failed dispatch can never break the chain. The cron trigger is kept only to re-arm the alarm
-// if it ever works. Fires at :02, :17, :32, :47 so GDELT has two minutes to finish publishing the batch.
+// GitHub's own `schedule:` dropped 42 of the first 44 runs. The clock is a Durable Object alarm: one object, one
+// alarm at a time, re-armed from inside alarm() before the dispatch so a failed dispatch can never break the chain.
+// Cloudflare's Cron Trigger is on the same grid but is NOT a second clock: it only re-arms the alarm if the chain
+// has died (it slept through its first six hours on this account, then came alive on 2026-09-09 and dispatched
+// from here as well, doubling the Actions bill until this fix was deployed). Only alarm() dispatches.
+// Fires at :02, :17, :32, :47 so GDELT has two minutes to finish publishing the batch.
 //
-// GET /arm      arms the alarm if none is set (idempotent, harmless, no secret needed)
+// GET /arm      arms the alarm if none is set or the one set is more than five minutes overdue (idempotent, harmless, no secret needed)
 // GET /status   shows when the next alarm rings
 // anything else 404
 
@@ -21,6 +22,7 @@ export interface Env {
 }
 
 const MINUTES = [2, 17, 32, 47];
+const STALE_MS = 5 * 60_000;   // an alarm this far overdue is a dead chain too (delivery stuck), not a live one
 
 /** Next firing strictly after `now`, at least 20 s away, on the :02/:17/:32/:47 grid (UTC). */
 export function nextFire(now: Date): Date {
@@ -37,9 +39,10 @@ export function nextFire(now: Date): Date {
 export class Ticker extends DurableObject<Env> {
   async arm(): Promise<string> {
     const current = await this.ctx.storage.getAlarm();
-    if (current !== null) return `armed for ${new Date(current).toISOString()}`;
-    const t = nextFire(new Date());
+    if (current !== null && current > Date.now() - STALE_MS) return `armed for ${new Date(current).toISOString()}`;
+    const t = nextFire(new Date());   // setAlarm replaces, so re-arming over a stale alarm can never double-fire
     await this.ctx.storage.setAlarm(t.getTime());
+    console.log(`re-armed: next ${t.toISOString()}`);  // quiet while the chain is alive; one line when the cron or /arm repairs it
     return `armed for ${t.toISOString()}`;
   }
 
@@ -61,13 +64,15 @@ export default {
     const ticker = env.TICKER.get(env.TICKER.idFromName('singleton'));
     if (path === '/arm') return new Response(await ticker.arm());
     if (path === '/status') return new Response(await ticker.status());
-    return new Response('cron-only', { status: 404 });
+    return new Response('not found', { status: 404 });
   },
 
-  // If Cloudflare's cron ever fires, make sure the alarm chain is alive and dispatch as well (the tick is idempotent).
+  // Re-arm path only. arm() is a no-op while the chain is alive; if the alarm is gone, the next cron tick restores
+  // it within 15 minutes. Never dispatch from here: the alarm already did, 30 s ago, and a second run costs a
+  // billed minute for a tick that finds nothing to publish.
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     const ticker = env.TICKER.get(env.TICKER.idFromName('singleton'));
-    ctx.waitUntil(ticker.arm().then(() => dispatch(env)));
+    ctx.waitUntil(ticker.arm());
   },
 };
 

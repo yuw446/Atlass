@@ -62,13 +62,17 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
 
 - GDELT publishes `lastupdate.txt` before the GKG upload finishes, and batch labels can run up to ten minutes ahead of
   wall-clock. The frontend clamps age at zero.
+- The tick reads the origin bucket `storage.googleapis.com/data.gdeltproject.org/` (`GDELT_ORIGIN`), not the
+  `data.gdeltproject.org` CDN: the CDN's 404 for an unpublished zip is `cache-control: public, max-age=3600`, so
+  every retry inside the hour got the cached miss; the bucket's 404 is `private, max-age=0`. Same paths, same bytes.
 - The repository is private on GitHub Pro. Pages works on private repos; the cron uses about 2,900 of 3,000 Actions
   minutes a month at one minute per tick. The tick job installs nothing so it stays fast.
 - GitHub's `schedule` trigger dropped 42 of the first 44 ticks on this private repo. The punctual trigger is
   `infra/tick-dispatch/`, a Cloudflare Worker whose **Durable Object alarm** calls the workflow-dispatch API at
-  :02, :17, :32, :47 (Cloudflare Cron Triggers never fired on this account; the alarm re-arms itself; `/arm` restarts
-  the chain, `/status` shows the next ring). `tick.yml` keeps `schedule:` as a fallback, and `keepalive.yml` pushes
-  an empty commit weekly so the fallback is never disabled for inactivity.
+  :02, :17, :32, :47 (the alarm re-arms itself; `/status` shows the next ring). The Cloudflare cron on the same grid
+  only re-arms a dead chain and must never dispatch: when it did, every slot ran twice and the Actions budget went to
+  the duplicates. `tick.yml` keeps `schedule:` as a fallback, and `keepalive.yml` pushes an empty commit weekly so
+  the fallback is never disabled for inactivity.
 - Keep `frontend`'s `three` pinned to the version `globe.gl` requires (`npm ls three` must show one copy), or the
   vendor chunk ships two copies of Three.js and the console warns "Multiple instances".
 - `pages.yml` copies `dist/` into the `gh-pages` worktree with `rsync --delete`; `.git` must stay excluded or the

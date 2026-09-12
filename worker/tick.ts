@@ -33,7 +33,11 @@ import { titleTokens, sameStory } from '../shared/title.ts';
 import { fipsToIso, POLYGON_CODES } from '../shared/codes.ts';
 import { isSnapshot, SNAPSHOT_SCHEMA, type Snapshot, type Story, type CountrySnap } from '../shared/snapshot.ts';
 
-export const GDELT = 'https://data.gdeltproject.org/gdeltv2/';
+// The origin bucket, not the data.gdeltproject.org CDN: the CDN caches a 404 for an unpublished zip for an hour
+// (`cache-control: public, max-age=3600`), so the publish-race retries and pending rechecks all read one stale
+// answer. The bucket's 404 is `private, max-age=0`. Later feeds (gdeltv3/) hang off GDELT_ORIGIN.
+export const GDELT_ORIGIN = 'https://storage.googleapis.com/data.gdeltproject.org/';
+export const GDELT = GDELT_ORIGIN + 'gdeltv2/';
 export const WINDOW = 8;        // batches per country window (two hours)
 export const RING = 8;          // batches of URL and normalised-headline hashes kept for cross-batch dedupe
 export const TOP = 10;          // distinct stories kept per country
@@ -396,6 +400,7 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
   const migrated = migrateState(state);
   if (migrated) log(`migrated state: ${migrated} stories on a removed lens dropped`);
   const latest = await latestBatchId(fetchFn);
+  log(`source ${GDELT} latest ${latest}`);
   const { slots, jumped } = slotsToProcess(state.last_batch, latest);
   if (jumped) { state.skipped.push(jumped); log(`jumped over ${jumped}`); }
   // GDELT sometimes publishes a slot's GKG file long after the index has moved on (35+ min seen live), and sometimes
