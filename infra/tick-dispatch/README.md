@@ -10,7 +10,8 @@ repair if the alarm is ever gone or more than five minutes overdue (no manual `/
 three days it did. Firing minutes are :02, :17, :32, :47, two minutes after GDELT's batch.
 
 Endpoints on `https://atlas-tick-dispatch.yuw446-atlas.workers.dev`:
-- `/arm` arms the alarm if none is set. Idempotent and harmless: it never dispatches by itself, so it needs no secret.
+- `/arm` arms the alarm if none is set, or replaces one more than five minutes overdue. Idempotent and harmless: it
+  never dispatches by itself, so it needs no secret.
 - `/status` shows when the next alarm rings.
 - anything else: 404.
 

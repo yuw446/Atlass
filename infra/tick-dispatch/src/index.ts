@@ -7,7 +7,7 @@
 // from here as well, doubling the Actions bill until this fix was deployed). Only alarm() dispatches.
 // Fires at :02, :17, :32, :47 so GDELT has two minutes to finish publishing the batch.
 //
-// GET /arm      arms the alarm if none is set (idempotent, harmless, no secret needed)
+// GET /arm      arms the alarm if none is set or the one set is more than five minutes overdue (idempotent, harmless, no secret needed)
 // GET /status   shows when the next alarm rings
 // anything else 404
 
