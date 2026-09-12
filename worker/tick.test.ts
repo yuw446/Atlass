@@ -388,7 +388,7 @@ test('run writes latest.json, hours and state; a second run on the same batch ch
   const logs: string[] = [];
   const fetchFn = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
   assert.equal(await run(site, fetchFn, s => logs.push(s)), 0);
-  assert.ok(logs.some(l => l.includes('source https://storage.googleapis.com/')), 'the log names the host that served the run');
+  assert.ok(logs.includes(`source https://storage.googleapis.com/data.gdeltproject.org/gdeltv2/ latest ${ID}`), 'the log names the bucket path that served the run');
   const latest = JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8'));
   assert.equal(isSnapshot(latest), true);
   assert.equal(latest.tick, AT);
@@ -456,6 +456,26 @@ test('run exits non-zero when the latest zip is unavailable', async () => {
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
   const fetchFn = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 503 } });
   await assert.rejects(run(site, fetchFn, () => {}), /HTTP 503/);
+  assert.equal(existsSync(join(site, 'data/latest.json')), false);
+});
+
+test('run fetches the bucket only: the data.gdeltproject.org URLs inside lastupdate.txt are never followed', async () => {
+  const site = mkdtempSync(join(tmpdir(), 'atlas-'));
+  const seen: string[] = [];
+  const inner = stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } });
+  assert.equal(await run(site, async url => { seen.push(url); return inner(url); }, () => {}, { retryDelayMs: 0 }), 0);
+  assert.ok(seen.length >= 2);
+  for (const u of seen) assert.ok(u.startsWith(GDELT), `fetched off the bucket: ${u}`);
+});
+
+test('lastupdate.txt unavailable or unparseable: run rejects before logging a source or writing anything', async () => {
+  const site = mkdtempSync(join(tmpdir(), 'atlas-'));
+  const logs: string[] = [];
+  await assert.rejects(run(site, stub({ [GDELT + 'lastupdate.txt']: { status: 503 } }), s => logs.push(s)), /lastupdate\.txt: HTTP 503/);
+  const garbled = Buffer.from('1 x a.export.CSV.zip\n2 x b.mentions.CSV.zip\n3 x not-a-batch.gkg.csv.zip\n');
+  await assert.rejects(run(site, stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: garbled } }), s => logs.push(s)), /line 3 unparseable/);
+  assert.deepEqual(logs, [], 'the source line is only logged once the index has been read');
+  assert.equal(existsSync(join(site, 'data/state.json')), false);
   assert.equal(existsSync(join(site, 'data/latest.json')), false);
 });
 

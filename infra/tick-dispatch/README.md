@@ -30,11 +30,12 @@ Endpoints on `https://atlas-tick-dispatch.yuw446-atlas.workers.dev`:
    (dashboard → Workers & Pages → atlas-tick-dispatch → Logs) show one line per dispatch with the HTTP status; 204 means queued.
 
 If the chain ever stops (`/status` says "not armed"), the next cron tick re-arms it within 15 minutes; `/arm` does the
-same at once. There is no dashboard control for a Durable Object alarm, so to test the repair path add a temporary
-`/disarm` route that calls `this.ctx.storage.deleteAlarm()`, deploy, confirm `/status` says "not armed" and then
-`next …` on the following quarter hour, and remove the route before the next deploy: it needs no secret, and left in
-place it would let anyone drop a slot. The token can be revoked at any time from the GitHub settings page; the worker
-then logs HTTP 401 and does nothing.
+same at once, and the persisted logs show `re-armed: next …` whenever either actually restores the chain. There is no
+dashboard control for a Durable Object alarm, so to test the repair path add a temporary route at an unguessable path
+(`/disarm-<random hex>`) that calls `this.ctx.storage.deleteAlarm()`, deploy, hit it, confirm `/status` says "not
+armed" and then `next …` on the following quarter hour, and redeploy without the route as soon as it does: anyone
+polling an open delete route would keep the alarm gone between cron ticks and stop the feed. The token can be revoked
+at any time from the GitHub settings page; the worker then logs HTTP 401 and does nothing.
 
 ## Gotchas seen on first deploy (2026-09-09)
 

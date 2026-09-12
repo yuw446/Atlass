@@ -41,6 +41,7 @@ export class Ticker extends DurableObject<Env> {
     if (current !== null) return `armed for ${new Date(current).toISOString()}`;
     const t = nextFire(new Date());
     await this.ctx.storage.setAlarm(t.getTime());
+    console.log(`re-armed: next ${t.toISOString()}`);  // quiet while the chain is alive; one line when the cron or /arm repairs it
     return `armed for ${t.toISOString()}`;
   }
 
@@ -62,7 +63,7 @@ export default {
     const ticker = env.TICKER.get(env.TICKER.idFromName('singleton'));
     if (path === '/arm') return new Response(await ticker.arm());
     if (path === '/status') return new Response(await ticker.status());
-    return new Response('cron-only', { status: 404 });
+    return new Response('not found', { status: 404 });
   },
 
   // Re-arm path only. arm() is a no-op while the chain is alive; if the alarm is gone, the next cron tick restores
