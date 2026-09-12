@@ -22,6 +22,7 @@ export interface Env {
 }
 
 const MINUTES = [2, 17, 32, 47];
+const STALE_MS = 5 * 60_000;   // an alarm this far overdue is a dead chain too (delivery stuck), not a live one
 
 /** Next firing strictly after `now`, at least 20 s away, on the :02/:17/:32/:47 grid (UTC). */
 export function nextFire(now: Date): Date {
@@ -38,8 +39,8 @@ export function nextFire(now: Date): Date {
 export class Ticker extends DurableObject<Env> {
   async arm(): Promise<string> {
     const current = await this.ctx.storage.getAlarm();
-    if (current !== null) return `armed for ${new Date(current).toISOString()}`;
-    const t = nextFire(new Date());
+    if (current !== null && current > Date.now() - STALE_MS) return `armed for ${new Date(current).toISOString()}`;
+    const t = nextFire(new Date());   // setAlarm replaces, so re-arming over a stale alarm can never double-fire
     await this.ctx.storage.setAlarm(t.getTime());
     console.log(`re-armed: next ${t.toISOString()}`);  // quiet while the chain is alive; one line when the cron or /arm repairs it
     return `armed for ${t.toISOString()}`;

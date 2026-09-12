@@ -6,7 +6,7 @@ dropped 42 of the first 44 runs on this private repo, so something punctual has 
 **The clock is a Durable Object alarm, not a Cron Trigger.** Alarms fire to the second. One object holds one alarm;
 `alarm()` re-arms the next quarter hour before it dispatches, so a failed dispatch cannot break the chain. The cron
 trigger in `wrangler.toml` runs on the same minutes but only calls `arm()`: a no-op while the chain is alive, and the
-repair if the alarm is ever gone (no manual `/arm` needed). It must never dispatch; see the gotchas below for the
+repair if the alarm is ever gone or more than five minutes overdue (no manual `/arm` needed). It must never dispatch; see the gotchas below for the
 three days it did. Firing minutes are :02, :17, :32, :47, two minutes after GDELT's batch.
 
 Endpoints on `https://atlas-tick-dispatch.yuw446-atlas.workers.dev`:
