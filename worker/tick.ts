@@ -12,7 +12,8 @@
 //   publish gate: ≥99% well-formed, ≥200 rows, ≥50% placed ──fail──► state.skipped, next slot
 //       ▼
 //   articleFrom: title · url/image validation · place vote (FIPS→ISO first) · coord (type 2/3/4/5 > 1)
-//                · non-news sections dropped · lenses (≥2 occurrences, ≥1 per 200 words; see shared/lenses.ts) · tone
+//                · non-news sections dropped · lenses (≥2 occurrences, ≥1 per 200 words; see shared/lenses.ts)
+//                · theme mix (crowdedOut: the lens is an aside to politics, courts, markets…) · tone
 //       ▼
 //   dedupe: URL (in-batch set + cross-batch ring(RING)) · headline (token overlap in batch, normalised key in ring)
 //       ──► domain cap among lensed
@@ -29,7 +30,7 @@ import { inflateRawSync } from 'node:zlib';
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { LENSES, parseThemes, scoreLenses, dominantLens } from '../shared/lenses.ts';
+import { LENSES, parseThemes, scoreLenses, dominantLens, crowdedOut } from '../shared/lenses.ts';
 import { titleTokens, sameStory } from '../shared/title.ts';
 import { fipsToIso, POLYGON_CODES } from '../shared/codes.ts';
 import { isSnapshot, SNAPSHOT_SCHEMA, type Snapshot, type Story, type CountrySnap } from '../shared/snapshot.ts';
@@ -42,6 +43,7 @@ export const GDELT = GDELT_ORIGIN + 'gdeltv2/';
 export const WINDOW = 8;        // batches per country window (two hours)
 export const RING = 8;          // batches of URL and normalised-headline hashes kept for cross-batch dedupe
 export const TOP = 10;          // distinct stories kept per country
+export const STORY_TTL_MS = 24 * 3600_000;   // a story leaves the country's ring a day after its batch
 export const MAX_SLOTS = 32;    // slots processed per run: eight hours of catch-up, because GitHub's scheduler drops runs for hours at a time
 export const DOMAIN_CAP = 5;    // lensed articles per source domain per batch
 export const SPARK_CAP = 3000;
@@ -108,7 +110,7 @@ export function parseRows(text: string): { rows: string[][]; malformed: number }
 
 // ---------- articles ----------
 export interface Article { url: string; host: string; title: string; iso: string; lat?: number; lon?: number; lens: number; score: number; tone: number | null; image?: string; at: string }
-export type Reject = 'no_title' | 'bad_url' | 'no_place' | 'section' | 'unlensed';
+export type Reject = 'no_title' | 'bad_url' | 'no_place' | 'section' | 'unlensed' | 'crowded';
 
 /**
  * Publisher sections, slugs and headline words that mark entertainment, not news about a place. A film about the 1381
@@ -194,9 +196,11 @@ export function articleFrom(cols: string[], at: string, totals: Totals): { artic
   if (isSparkOnly(place.iso)) totals.unmapped++;
   if (nonNewsReason(new URL(url).pathname, title)) return { reject: 'section' };
   const [toneStr, , , , , , words] = (cols[COL.TONE] ?? '').split(',');   // V1.5Tone: tone, …, word count
-  const scores = scoreLenses(parseThemes(cols[COL.THEMES]));
+  const themes = parseThemes(cols[COL.THEMES]);
+  const scores = scoreLenses(themes);
   const lens = dominantLens(scores, Number(words) || 0);
   if (lens < 0) return { reject: 'unlensed' };
+  if (crowdedOut(lens, themes, scores[lens])) return { reject: 'crowded' };
   const tone = Number.parseFloat(toneStr ?? '');
   let image = validUrl(cols[COL.IMAGE], true);
   if (cols[COL.IMAGE] && !image) totals.dropped_urls++;
@@ -302,6 +306,9 @@ export function applyBatch(state: State, res: BatchResult, at: string): void {
     for (const a of list) { lens[a.lens]++; if (a.tone !== null) { tsum += a.tone; tn++; } }
     const cs = ensure(state, iso, Math.log1p(list.length));
     cs.win.push({ at, lens, tsum, tn }); while (cs.win.length > WINDOW) cs.win.shift();
+    // The ring is score-ordered, so without an age limit a strong old story (or one kept by rules since retired)
+    // outranks today's indefinitely; after a feed outage the panel would open on last week.
+    cs.stories = cs.stories.filter(s => Date.parse(s.at) > Date.parse(at) - STORY_TTL_MS);
     if (list.length) {
       const fresh: Story[] = list.map(a => ({ t: a.title, u: a.url, d: a.host, i: a.image, l: a.lens, s: a.score, lat: a.lat, lon: a.lon, at }));
       // Strongest lens signal first, then stories with an image, then newest; the panel shows them in this order.

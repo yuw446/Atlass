@@ -84,6 +84,70 @@ export function scoreLenses(themes: Iterable<string>): number[] {
   return core.map((c, i) => (c > 0 && !vetoed[i] ? c + Math.min(support[i], c) : 0));
 }
 
+// ---------- theme mix: is the lens the article's subject, or an aside? ----------
+// Measured 2026-09-23 on 1,689 double-labelled stories (docs/precision-check.md): three rules over the article's whole
+// theme mix, fitted on three days and scored on three others it never saw: 28.8% → 39.8% precision at 90.5% recall.
+
+/** Generic GKG subject families that compete with a lens for the article. Theme names, never news names. */
+const CIVIC = {
+  politics: /^(TAX_FNCACT_(CANDIDATES?|POLITICIANS?|SUPPORTERS?|LAWMAKERS?|VOTERS?)|DEMOCRACY|IDEOLOGY|LEGISLATION|EPU_POLICY_CONGRESSIONAL|TAX_POLITICAL_PARTY_.*)$/,
+  courts: /^(TRIAL|TAX_FNCACT_(ATTORNEYS?|JUDGES?|PROSECUTORS?|LAWYERS?|DEFENDANTS?)|WB_2453_ORGANIZED_CRIME|WB_2456_DRUGS_AND_NARCOTICS|DRUG_TRADE|CRIME_.*|WB_328_FINANCIAL_INTEGRITY|CORRUPTION|WB_2082_LAW_ENFORCEMENT|EPU_POLICY_LAW)$/,
+  economy: /^(EPU_CATS_TAXES|EPU_POLICY_TAX|ECON_TAXATION|WB_713_PUBLIC_FINANCE|WB_1045_TREASURY|WB_2670_JOBS|WB_695_POVERTY|ECON_INFLATION|WB_442_INFLATION|ECON_STOCKMARKET|ECON_WORLDCURRENCIES_.*|ECON_INTEREST_RATES|ECON_HOUSING_PRICES|ECON_COST_OF_LIVING|TAX_FNCACT_(CEOS?|EXECUTIVES?|EMPLOYEES?|TRADERS?|INVESTORS?))$/,
+  rights: /^(WB_2203_HUMAN_RIGHTS|WB_2507_HUMAN_RIGHTS_ABUSES_AND_VIOLATIONS|WB_2509_GENOCIDE|SELF_IDENTIFIED_HUMAN_RIGHTS|WB_962_INTERNATIONAL_LAW|DISCRIMINATION)$/,
+  markets: /^(TAX_ECON_PRICE|FUELPRICES|ECON_[A-Z]*PRICES?|ECON_HEATINGOIL|ECON_BITCOIN)$/,
+  society: /^(SCIENCE|RELIGION|TOURISM|UNGP_HEALTHCARE|TAX_FNCACT_STUDENTS?|IMMIGRATION|EDUCATION|WB_470_EDUCATION)$/,
+};
+/** Families that compete per lens. Climate coverage is about science, schools and tourism by nature, so `society`
+ *  does not compete with disaster; rallies are politics by nature, so nothing competes with unrest. */
+const COMPETES: readonly (readonly (keyof typeof CIVIC)[])[] = [
+  ['politics', 'courts', 'economy', 'markets', 'rights', 'society'],
+  ['politics', 'courts', 'economy', 'markets', 'rights'],
+  [],
+];
+/** Fighting reported: casualties, drones, troops, a truce or a blockade. */
+const FIGHTING = /^(KILL|CRISISLEX_T03_DEAD|WOUND|CRISISLEX_T02_INJURED|DRONES|TAX_FNCACT_TROOPS|CEASEFIRE|BLOCKADE)$/;
+/** Armed movements GDELT also files as parties: their mentions are the war, not politics. GDELT's TAX_TERROR_GROUP_
+ *  twin cannot decide this; it also tags the BJP, the BNP and a German communist party. */
+const ARMED_PARTY = /^TAX_POLITICAL_PARTY_(HAMAS|HEZBOLLAH)$/;
+/** A labour dispute: workers, unions, wages, labour standards, bargaining. */
+const LABOUR = /^(TAX_FNCACT_WORKERS?|ECON_UNIONS|WB_\d+_(TRADE_UNIONS|LABOR_.*|WAGES|WORKING_CONDITIONS)|UNSAFE_WORK_ENVIRONMENT|NEGOTIATIONS)$/;
+/** A competing subject counts when mentioned at least this share of the lens score plus reported fighting. */
+export const CROWD_RATIO = 0.5;
+
+export type Crowded = 'civic' | 'nofight' | 'strike';
+/**
+ * Why the article's own theme mix says its lens is an aside, or undefined when the lens is the subject.
+ * - nofight (conflict): no fighting reported, and the war is not named (no ARMEDCONFLICT) or the armed forces are
+ *   (MILITARY: exercises, procurement, postings). TERROR, EXTREMISM, REBELLION alone are rhetoric and crime.
+ * - strike (unrest): every unrest mention is the word "strike" (PROTEST co-fires with STRIKE) and nothing marks a
+ *   labour dispute: lightning strikes, strike-outs, a band's single.
+ * - civic (conflict, disaster): one competing subject family is mentioned at least CROWD_RATIO as often as the lens and
+ *   its fighting (at least once): the speech, trial, budget or market story that cites a war or a storm.
+ *   An armed movement filed as a party (ARMED_PARTY: Hamas, Hezbollah) is not politics. Price themes co-fire
+ *   on one phrase ("oil prices" is TAX_ECON_PRICE, FUELPRICES and ECON_OILPRICE at once), so markets counts its
+ *   most-mentioned theme, not the sum: a war report with an oil-price paragraph stays.
+ * ponytail: generic theme families at one ratio; the ceiling is war diplomacy and preparedness stories, whose themes
+ * match live events. A headline judge is the upgrade (docs/precision-check.md).
+ */
+export function crowdedOut(lens: number, themes: Iterable<string>, score: number): Crowded | undefined {
+  const T = new Map<string, number>();
+  for (const t of themes) T.set(t, (T.get(t) ?? 0) + 1);
+  let fighting = 0;
+  for (const [t, c] of T) if (FIGHTING.test(t)) fighting += c;
+  if (lens === 0 && !fighting && (!T.has('ARMEDCONFLICT') || T.has('MILITARY'))) return 'nofight';
+  if (lens === 2 && T.has('STRIKE') && (T.get('PROTEST') ?? 0) <= T.get('STRIKE')! && ![...T.keys()].some(t => LABOUR.test(t))) return 'strike';
+  let best = 0;
+  for (const f of COMPETES[lens] ?? []) {
+    let s = 0;
+    for (const [t, c] of T) {
+      if (!CIVIC[f].test(t) || ARMED_PARTY.test(t)) continue;
+      s = f === 'markets' ? Math.max(s, c) : s + c;
+    }
+    best = Math.max(best, s);
+  }
+  return COMPETES[lens]?.length && best >= Math.max(1, CROWD_RATIO * (score + fighting)) ? 'civic' : undefined;
+}
+
 /**
  * Dominant lens index (ties by lens order) or -1. A lens needs MIN_LENS_SCORE occurrences and, when the article's
  * word count is known, MIN_LENS_DENSITY of them per word: two mentions carry a 300-word brief, not a 2,000-word feature.
