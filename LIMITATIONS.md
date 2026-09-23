@@ -16,14 +16,18 @@ not the first-mentioned; a lens needs two theme occurrences and one per 200 word
 long feature does not count; `WB_2433_CONFLICT_AND_VIOLENCE` only confirms a conflict story, `ECON_TRADE_DISPUTE`
 vetoes one, and `NATURAL_DISASTER_ICE`/`ICY`/`CHILL` never count (ICE the agency, ice cream); entertainment sections,
 review slugs and headline words drop the article; a domain cap stops aggregators dominating. On a labelled batch this
-took lens precision from 24% to 54% at 89% recall.
+took lens precision from 24% to 54% at 89% recall on that batch. A larger check on 2026-09-23 (1,689 stories over six days,
+double-labelled, fitted and held out) measured 25% to 29% on what was actually shipping; the theme-mix rule
+(`crowdedOut`: the lens is an aside to politics, courts, economy, markets, rights or society themes; conflict with no
+fighting reported; "strike" with no labour theme) raised it to 40% at 90% recall on held-out days.
 **Still wrong, by class:** anniversary and history pieces carry the same themes as live conflict; a film about a
 historical revolt survives when its outlet has no section in the URL and no review word in the headline, and so does
 a review whose slug has "review" in the middle (`the-uprising-review-andrew-garfield`): a mid-slug rule fitted to one
 day's slugs dropped a live New Zealand flood story for two film reviews caught, so there is none; crime and
 court stories reach Conflict through `TERROR` and `MILITARY`; market stories are lensed by the war they cite; local
-weather forecasts reach Disaster. No GKG field separates these: GCAM's culture dimension scores real war news as high
-as reviews. Country placement has not been checked.
+weather forecasts reach Disaster; war diplomacy and UN speeches reach Conflict. No GKG field separates these: GCAM's culture dimension scores real war news as high
+as reviews. A small LLM reading only the headline and URL scored 69% at 82% recall on the same held-out days.
+Country placement has not been checked.
 
 ### Syndicated copies are merged by headline, not by event
 **Symptom (before 2026-09-09):** a wire story ran nine times in one country's panel under nine radio-station URLs, and

@@ -89,3 +89,67 @@ sea-lion El Niño feature, a North Carolina peatland feature.
 - Local weather forecasts under Disaster.
 
 Country placement was not checked in this run.
+
+## Sweep, 2026-09-23: 1,689 stories, double-labelled, with a holdout
+
+> Re-run: `scripts/lens-audit.ts` now lists what the theme mix crowds out; the corpus builder and scorer below are
+> described so the check can be repeated, not committed.
+
+**Why.** The globe still read as off-topic. The 09-09 figure (54%) came from one batch labelled by one reader.
+
+**Method.**
+1. Corpus: what the shipped pipeline (`processBatch`: filters, domain cap, syndication merge) put on the globe from
+   16 batches on 2026-09-21..23 (train, 1,033 stories) and 14 batches on 2026-09-18..20 (holdout, 656), deduplicated
+   across batches, with every V2Themes count kept so rules can be scored offline.
+2. Labels: two independent LLM readers per story, headline and URL only, one written rubric per lens ("is the main
+   subject a current event of this lens?": on, off, borderline, plus a reason class); a third decides disagreements.
+   Agreement: 95.1% on the three-way label, 97.8% on on-versus-not. Both readers are the same model, so this overstates
+   how often the labels are right; it does show the question is answerable from the headline.
+3. Four rule designers (themes, source/URL, headline wording, structure) worked on the train labels only. Every rule
+   was then scored once on the holdout.
+
+**What is on the globe (before this change).** Precision 24.9% (train) and 28.8% (holdout): conflict 21% / 26%,
+disaster 33% / 34%, unrest 28% / 36%. By reason, the off-topic stories are politics and rhetoric (357), crime and
+courts (154), business and markets (129), routine military (85), entertainment (70), preparedness and funding (64),
+anniversaries (44), routine weather (43), commemorations (28). 27% of lensed stories are US, from 789 outlets, 462 of
+which contributed one story.
+
+**Holdout results (656 stories, 189 on-topic).**
+
+| Rule | Kept | Precision | Recall |
+|------|-----:|----------:|-------:|
+| shipped (09-09 rules) | 656 | 28.8% | 100% |
+| source/URL sections | 584 | 30.8% | 95.2% |
+| structure (score, density, theme shares) | 481 | 34.7% | 88.4% |
+| headline wording (seven shape families) | 447 | 37.6% | 88.9% |
+| **theme mix: civic + nofight + strike (shipped)** | 430 | **39.8%** | **90.5%** |
+| theme mix + election and past headlines | 402 | 42.3% | 89.9% |
+| all four designs, as delivered | 248 | 54.0% | 70.9% |
+| a small LLM (Haiku) reading headline + URL, eight-line prompt | 225 | **69.3%** | 82.5% |
+
+On-topic stories lost, train (of 257) / holdout (of 189), per component: headline court 0/5, routine 0/6, market
+0/6, opinion 3/4, past 0/1, election 0/0, listing 0/0; theme mix civic 10/14, nofight 2/4, strike 1/0, aside 0/3.
+Court, routine and market were fitted word lists (the mid-slug review lesson again). Election and past held up, and on
+top of the theme mix give 42.3% at 89.9%, but both are word lists that name parties (BJP, AAP, GOP, Labour) and years,
+over a three-day holdout: 2.5 points was not worth a list that has to be kept current. The theme mix lost 5.1% of
+on-topic stories on train and 9.5% on the holdout, the smallest rise of any family that dropped more than a handful,
+so it shipped (`crowdedOut` in `shared/lenses.ts`). The subset was chosen after scoring (`aside` was left out for its
+three holdout losses), so 39.8% is slightly optimistic. Two changes after scoring, both neutral on the holdout (430
+kept, 39.8%, 90.5% either way): the markets family counts its most-mentioned theme, not the sum, because one
+"oil prices" phrase fires five price themes (it keeps the fixture's "US destroys 5 Iranian oil tankers after missile
+attack"); and only Hamas and Hezbollah are exempt from politics as armed parties, because GDELT's `TAX_TERROR_GROUP_`
+twin also tags the BJP, the BNP and a German communist party.
+
+**Lost by the shipped rule (18 of 189 on the holdout):** mostly war policy (sanctions bills signed, war cost estimates,
+an air-defence sale, Red Sea escort calls), three live events ("Houthis did try to attack Riyadh with ballistic
+missile", "Iran says it strikes an oil tanker", an Amritsar canal-breach flood) and climate-policy pieces.
+
+**Still wrong, by class:** war diplomacy and UN speeches carry the same themes as war reporting; preparedness,
+funding and routine-weather stories carry the same hazard themes as live events; crime reaches Conflict and Unrest
+through generic security themes. No theme separates these. A reader of the headline does: the judge above, at matched
+recall, is 22 points more precise than the best hand rules. That is the measured case for a headline judge;
+record it here when it is built.
+
+**Story age.** The per-country story ring is score-ordered and never expired, so a strong old story outranked new
+ones indefinitely, and after the 2026-09-16 outage every panel would have opened on the previous week. Stories now
+leave the ring a day after their batch (`STORY_TTL_MS`).

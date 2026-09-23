@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import {
   unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState, articleFrom, migrateState,
   updateBaseline, seedBaselines, zOf, attOf, slotsToProcess, batchToIso, run, isSparkOnly, decodeEntities,
-  zeroTotals, mergeHour, GDELT, PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
+  zeroTotals, mergeHour, GDELT, PRIOR_TICKS, WINDOW, TOP, STORY_TTL_MS, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
   type HourEntry,
 } from './tick.ts';
 import { isSnapshot, type CountrySnap } from '../shared/snapshot.ts';
@@ -95,6 +95,9 @@ test('articleFrom: publisher sections, review slugs and entertainment headlines 
   assert.equal(at('https://e2.example/news/officials-review-damage-after-quake/').article?.lens, 1);
   assert.equal(at('https://e2.example/news/hurricane-preview-2026').article?.lens, 1, 'preview is not review');
   const titled = (t: string) => { const c = [...row]; c[26] = `<PAGE_TITLE>${t}</PAGE_TITLE>`; return articleFrom(c, AT, totals); };
+  const themed = (t: string) => { const c = [...row]; c[8] = t; return articleFrom(c, AT, totals); };
+  assert.equal(themed('ARMEDCONFLICT,10;MILITARY,50').reject, 'crowded', 'a lensed row whose theme mix makes the lens an aside');
+  assert.equal(themed('ARMEDCONFLICT,10;KILL,30;MILITARY,50').article?.lens, 0);
   assert.equal(titled('Storm Season 2 Trailer Drops').reject, 'section');
   assert.equal(titled('Book review: The Cold War\'s hidden hands').reject, 'section');
   assert.equal(titled('Council orders review of storm defences').article?.lens, 1, '"review" mid-headline is news');
@@ -232,6 +235,16 @@ test('run migrates a state.json written with four lenses: the log says so, top[]
   for (const c of Object.values(latest.countries) as CountrySnap[]) { assert.equal(c.lens.length, 3); assert.ok(c.top.every(s => s.l < 3)); }
   const after: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
   assert.ok(Object.values(after.countries).every(cs => cs.win.every(w => w.lens.length === 3) && cs.stories.every(s => s.l < 3)));
+});
+
+test('a story leaves the country ring a day after its batch, even when the country has nothing new', () => {
+  const state = emptyState();
+  const old = (h: number, t: string) => ({ t, u: `https://x.example/${h}`, d: 'x.example', l: 0, s: 9, at: new Date(Date.parse(AT) - h * 3600_000).toISOString() });
+  state.last_batch = '20260908231500';
+  state.countries.SD = { win: [], stories: [old(25, 'Strong but a day old'), old(23, 'Yesterday evening')], bl: { fast: 0, base: 0, var: 0.5, ticks: 96 } };
+  applyBatch(state, { byCountry: new Map(), sparks: [], totals: zeroTotals() }, AT);
+  assert.deepEqual(state.countries.SD.stories.map(s => s.t), ['Yesterday evening']);
+  assert.equal(STORY_TTL_MS, 24 * 3600_000);
 });
 
 test('story ring dedupes syndicated headlines across URLs, site tags and edits, keeping the strongest signal first', () => {

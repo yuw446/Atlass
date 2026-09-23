@@ -42,7 +42,8 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
   dropped on 2026-09-11: too few stories to score or learn from). Lens indices are positional in the snapshot, so a
   lens is only ever removed from the end and `migrateState()` truncates stored state on load. Do not add a layer
   registry, a taxonomy, or a heatmap. A lens needs ≥ 2 theme occurrences and ≥ 1 per 200 words; `support` themes only confirm, `veto` themes remove;
-  `MANMADE_DISASTER_IMPLIED` and `NATURAL_DISASTER_ICE`/`ICY`/`CHILL` never count. Entertainment sections and
+  `MANMADE_DISASTER_IMPLIED` and `NATURAL_DISASTER_ICE`/`ICY`/`CHILL` never count; `crowdedOut` drops a lensed article
+  whose theme mix makes the lens an aside (measured on a holdout, docs/precision-check.md). Entertainment sections and
   headlines are dropped in the worker (`NON_NEWS_PATH`, `NON_NEWS_TITLE`).
 - **One contract.** `shared/snapshot.ts` is the type and the runtime guard for `latest.json`, used by the worker
   (before writing) and the frontend (before rendering). Change it in one place; bump `schema` for breaking changes.
