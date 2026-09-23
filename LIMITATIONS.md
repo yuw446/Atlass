@@ -1,6 +1,6 @@
 # Atlas — Known Limitations
 
-> Last updated: 2026-09-09
+> Last updated: 2026-09-23
 
 Confirmed limitations, their root causes, and what is in place. `TASKS.md` tracks work; this file records what is
 accepted, deferred, or waiting on something external.

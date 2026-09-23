@@ -1,6 +1,6 @@
 # ATLAS — Tasks & Progress
 
-> Last updated: 2026-09-12
+> Last updated: 2026-09-23
 > Stack: Node 24 worker (stdlib) · Vite + React 19 + react-globe.gl + Tailwind v4 · GitHub Actions + Pages
 > Design of record: `~/.gstack/projects/yuw446-Atlass/faye-claude-project-revival-core-e38374-design-20260907-115409.md`
 > Tests: `npm test` (node --test; 65 tests across shared/, worker/, frontend/src/lib). Render paths are checked by `/qa` on the deployed page.
@@ -73,7 +73,7 @@ model behind the gate, #29 country check, #30 and #31 clustering, #32 retrain ro
 | Issue | Impact | Plan |
 |-------|--------|------|
 | GDELT tagging noise: 29% measured on shipped rules (2026-09-23), 40% with the theme mix; a headline judge scored 69% | Wrong-lens or wrong-country story in the panel | Learned classifier and country check, issues #21 to #29 |
-| GitHub `schedule` drops most runs (2 of 44 on night one) | Feed hours stale without the dispatcher | Deploy `infra/tick-dispatch/`; keepalive keeps the fallback alive |
+| GitHub `schedule` drops most runs (2 of 44 on night one) | Feed hours stale without the dispatcher | Mitigated: `infra/tick-dispatch/` deployed (hourly alarm at :02); keepalive keeps the fallback alive |
 | ~~GitHub refused every Actions job 2026-09-16 to 09-23 (Pro minutes spent at */15)~~ | Feed frozen for a week | Resolved 2026-09-23: repo made public (free Actions and Pages), hourly dispatcher deployed |
 | "Multiple instances of Three.js" console warning | None visible; react-globe.gl bundles its own three | Align versions when upgrading |
 | Greenland tessellation artifacts | Cosmetic at some zooms | Higher-resolution GeoJSON or great-circle densification |
