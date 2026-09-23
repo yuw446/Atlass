@@ -8,7 +8,8 @@ dropped 42 of the first 44 runs on this private repo, so something punctual has 
 trigger in `wrangler.toml` runs every 15 minutes but only calls `arm()`: a no-op while the chain is alive, and the
 repair if the alarm is ever gone or more than five minutes overdue (no manual `/arm` needed). It must never dispatch; see the gotchas below for the
 three days it did. The alarm fires at :02, two minutes after GDELT's :00 batch; the tick walks the three batches before
-it too. It fired at :02, :17, :32, :47 until 2026-09-23, when the Actions minutes ran out (see the repo's LIMITATIONS.md).
+it too. It fired at :02, :17, :32, :47 until 2026-09-23; at 96 runs a day the Actions minutes ran out on 2026-09-16 (see the
+repo's LIMITATIONS.md). The deployed worker keeps the old grid until `npx wrangler deploy` is run from this directory.
 
 Endpoints on `https://atlas-tick-dispatch.yuw446-atlas.workers.dev`:
 - `/arm` arms the alarm if none is set, or replaces one more than five minutes overdue. Idempotent and harmless: it

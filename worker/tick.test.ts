@@ -7,7 +7,7 @@ import {
   unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState, articleFrom, migrateState,
   updateBaseline, seedBaselines, zOf, attOf, slotsToProcess, batchToIso, run, isSparkOnly, decodeEntities,
   zeroTotals, mergeHour, GDELT, PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
-  type BatchResult,
+  type HourEntry,
 } from './tick.ts';
 import { isSnapshot, type CountrySnap } from '../shared/snapshot.ts';
 
@@ -418,29 +418,31 @@ test('run walks a gap: old missing slots are skipped, the latest is processed', 
   assert.equal(after.last_batch, ID);
 });
 
-test('an hourly run: latest.json carries the sparks and totals of the last hour of batches, not older ones', async () => {
+test('hourly runs publish a rolling hour: a late fallback run between two dispatches keeps all four batches', async () => {
   const one = mkdtempSync(join(tmpdir(), 'atlas-'));
   await run(one, stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } }), () => {});
-  const single = JSON.parse(readFileSync(join(one, 'data/latest.json'), 'utf8'));
-  // Five slots, 22:30 … 23:30, each serving the fixture: the 22:30 batch is more than 45 minutes older than the newest.
-  const ids = ['20260908223000', '20260908224500', '20260908230000', '20260908231500', ID];
+  const single = JSON.parse(readFileSync(join(one, 'data/latest.json'), 'utf8')).totals.articles;
   const site = mkdtempSync(join(tmpdir(), 'atlas-'));
   const { writeFileSync, mkdirSync } = await import('node:fs');
   mkdirSync(join(site, 'data'), { recursive: true });
-  writeFileSync(join(site, 'data/state.json'), JSON.stringify({ ...emptyState(), last_batch: '20260908221500' }));
-  const map: Record<string, Fetched> = { [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) } };
-  for (const id of ids) map[`${GDELT}${id}.gkg.csv.zip`] = { status: 200, buf: ZIP };
-  await run(site, stub(map), () => {});
-  const latest = JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8'));
-  assert.equal(isSnapshot(latest), true);
-  assert.equal(latest.tick, AT);
-  assert.equal(latest.totals.articles, 4 * single.totals.articles, 'four batches read in the hour; 22:30 is outside it');
+  writeFileSync(join(site, 'data/state.json'), JSON.stringify({ ...emptyState(), last_batch: '20260908220000' }));
+  const zips: Record<string, Fetched> = {};
+  for (const id of ['20260908221500', '20260908223000', '20260908224500', '20260908230000', '20260908231500']) zips[`${GDELT}${id}.gkg.csv.zip`] = { status: 200, buf: ZIP };
+  const upTo = (id: string) => stub({ ...zips, [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(id) } });
+  const articles = () => JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8')).totals.articles;
+  await run(site, upTo('20260908230000'), () => {});   // the :02 dispatch walks 22:15 … 23:00
+  assert.equal(articles(), 4 * single);
+  await run(site, upTo('20260908231500'), () => {});   // a late fallback run finds only 23:15
+  assert.equal(articles(), 4 * single, '22:30 … 23:15 from state.hour, not 23:15 alone; 22:15 has left the hour');
+  const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  assert.deepEqual(state.hour!.map(h => h.at.slice(11, 16)), ['22:30', '22:45', '23:00', '23:15'], 'state.hour is pruned to the hour');
+  assert.equal(isSnapshot(JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8'))), true);
 });
 
-test('mergeHour: sparks and totals of the batches within 45 minutes of the newest, in batch order', () => {
-  const res = (i: number): BatchResult => ({ byCountry: new Map(), sparks: [[i, 0, 0]], totals: { ...zeroTotals(), articles: 100 + i, lensed: i } });
-  const recent = [60, 45, 30, 15, 0].map((m, i) => ({ at: new Date(Date.parse(AT) - m * 60_000).toISOString(), res: res(i) }));
-  const out = mergeHour(snapshotFrom(emptyState(), AT, recent[4].res), recent);
+test('mergeHour: sparks and totals of the batches within 45 minutes of the tick, in batch order', () => {
+  const entry = (m: number, i: number): HourEntry => ({ at: new Date(Date.parse(AT) - m * 60_000).toISOString(), sparks: [[i, 0, 0]], totals: { ...zeroTotals(), articles: 100 + i, lensed: i } });
+  const hour = [60, 45, 30, 15, 0].map(entry);
+  const out = mergeHour(snapshotFrom(emptyState(), AT, { byCountry: new Map(), sparks: [], totals: zeroTotals() }), hour);
   assert.equal(out.totals.articles, 101 + 102 + 103 + 104);
   assert.equal(out.totals.lensed, 1 + 2 + 3 + 4);
   assert.deepEqual(out.sparks.map(s => s[0]), [1, 2, 3, 4]);

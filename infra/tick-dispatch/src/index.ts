@@ -2,7 +2,7 @@
 //
 // GitHub's own `schedule:` dropped 42 of the first 44 runs. The clock is a Durable Object alarm: one object, one
 // alarm at a time, re-armed from inside alarm() before the dispatch so a failed dispatch can never break the chain.
-// Cloudflare's Cron Trigger is on the same grid but is NOT a second clock: it only re-arms the alarm if the chain
+// Cloudflare's Cron Trigger (every 15 minutes: :02, :17, :32, :47) is NOT a second clock: it only re-arms the alarm if the chain
 // has died (it slept through its first six hours on this account, then came alive on 2026-09-09 and dispatched
 // from here as well, doubling the Actions bill until this fix was deployed). Only alarm() dispatches.
 // Fires at :02 each hour so GDELT has two minutes to finish publishing the :00 batch; the tick catches up on the three
@@ -64,8 +64,8 @@ export default {
   },
 
   // Re-arm path only. arm() is a no-op while the chain is alive; if the alarm is gone, the next cron tick restores
-  // it within 15 minutes (the cron stays on the quarter hours: invocations are free and repair comes sooner). Never dispatch from here: the alarm already did, 30 s ago, and a second run costs a
-  // billed minute for a tick that finds nothing to publish.
+  // it within 15 minutes (the cron stays on the quarter hours: invocations are free and repair comes sooner).
+  // Never dispatch from here: the hourly :02 alarm is the only dispatcher, and a second run costs a billed minute.
   async scheduled(_event: ScheduledEvent, env: Env, ctx: ExecutionContext): Promise<void> {
     const ticker = env.TICKER.get(env.TICKER.idFromName('singleton'));
     ctx.waitUntil(ticker.arm());

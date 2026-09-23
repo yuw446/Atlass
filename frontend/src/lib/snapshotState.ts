@@ -19,7 +19,7 @@ export type SnapEvent =
   | { type: 'restore'; body: unknown; now: number }
   | { type: 'clock'; now: number };
 
-/** The tick runs hourly at :02, so a healthy feed reaches about 65 minutes old before the next one lands. */
+/** The tick runs hourly at :02: the next one publishes at about 65 minutes, and the Pages cache can show the old one until about 75. */
 export const STALE_MINUTES = 90;
 export const initialState: SnapState = { status: 'loading', snapshot: null };
 

@@ -57,8 +57,8 @@ The legend says "English-language media".
 
 ### Fifteen-minute batches, hourly ticks, two-hour window
 The tick runs hourly and applies each of the hour's four batches in turn. Fill colour, lens mix, and the panel's
-stories aggregate the last 8 batches; sparks and the header totals are the last hour's batches. A run that follows
-another inside the hour (a fallback `schedule` run) carries only its own batches, so that hour shows fewer sparks. A single
+stories aggregate the last 8 batches; sparks and the header totals are the last hour's batches, kept in
+`state.hour`, so a late fallback `schedule` run between two dispatches publishes the same rolling hour. A single
 batch holds one or two lensed stories for a typical country, which is why the window exists.
 
 ### Publish race, lag, and clock drift in the feed
@@ -77,8 +77,10 @@ of wall-clock; the page clamps "last tick" at zero minutes and calls the feed la
 ### Private repository on GitHub Pro
 Pages and the Actions budget depend on the paid plan. At every 15 minutes the tick used about 2,900 of 3,000 minutes
 a month, and with the double dispatch of 2026-09-10/11 on top GitHub stopped starting jobs on 2026-09-16 ("recent
-account payments have failed or your spending limit needs to be increased"); the feed froze for a week. Hourly since
-2026-09-23: about 720 tick minutes a month, plus the Pages deploy each push triggers. When jobs are refused the header
+account payments have failed or your spending limit needs to be increased"); the feed froze. Running less often does not
+lift a refusal: the owner has to raise the spending limit or fix the payment in Billing & plans (or wait for the
+cycle to reset). Hourly from 2026-09-23 keeps it from recurring: about 720 tick minutes a month, plus the Pages deploy
+each push triggers and a minute for each late fallback `schedule` run. When jobs are refused the header
 turns amber ("feed is late"); the runs show no log, and the reason is in the check-run annotation.
 
 ### GitHub's scheduler drops most runs on this repository
@@ -91,7 +93,8 @@ Cron Trigger (every 15 minutes) slept through its first six hours, then fired; i
 chain has died and never dispatches (from 2026-09-09 until the fix was deployed it did, and every slot ran the tick
 twice: about 100 extra billed minutes a day). The workflow's own `schedule:` stays as a second fallback. When a run does
 happen after a gap it catches up 32 slots (eight hours); older gaps are recorded in `state.skipped` and stay holes in
-`hours/`. Expected tick age with the dispatcher is about half an hour at the median, 65 minutes at most.
+`hours/`. Expected tick age with the dispatcher is about half an hour at the median; the next run publishes at about 65
+minutes, and the Pages cache (below) can hold the page on the old tick until about 75.
 
 ### Pages cache
 Pages serves `data/latest.json` with `cache-control: max-age=600`. The page polls every minute with `cache: 'no-cache'`,

@@ -67,8 +67,9 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
   every retry inside the hour got the cached miss; the bucket's 404 is `private, max-age=0`. Same paths, same bytes.
 - The repository is private on GitHub Pro. Pages works on private repos. The tick ran every 15 minutes until
   2026-09-23; at about 2,900 of 3,000 Actions minutes a month it had no headroom, and GitHub stopped starting jobs on
-  2026-09-16 (the run shows no log; the reason is in the check-run annotation). It now runs hourly (about 720 minutes)
-  and walks the hour's four batches; `latest.json` carries the hour's sparks and totals (`mergeHour`). The tick job installs nothing so it stays fast.
+  2026-09-16 (the run shows no log; the reason is in the check-run annotation). Fewer runs do not lift a refusal; billing does.
+  It runs hourly from 2026-09-23 (about 720 minutes) and walks the hour's four batches; `latest.json` carries the
+  rolling hour's sparks and totals, persisted in `state.hour` (`mergeHour`). The tick job installs nothing so it stays fast.
 - GitHub's `schedule` trigger dropped 42 of the first 44 ticks on this private repo. The punctual trigger is
   `infra/tick-dispatch/`, a Cloudflare Worker whose **Durable Object alarm** calls the workflow-dispatch API at
   :02 each hour (the alarm re-arms itself; `/status` shows the next ring). The Cloudflare cron (still every 15 minutes)

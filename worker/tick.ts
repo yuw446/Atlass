@@ -55,7 +55,9 @@ const NCOLS = 27;
 export interface Baseline { fast: number; base: number; var: number; ticks: number }
 export interface WinEntry { at: string; lens: number[]; tsum: number; tn: number }
 export interface CountryState { win: WinEntry[]; stories: Story[]; bl: Baseline }
-export interface State { last_batch: string | null; skipped: string[]; pending?: string[]; ring: string[][]; countries: Record<string, CountryState> }
+/** One applied batch's share of latest.json, kept 45 minutes so every run publishes the same rolling hour (mergeHour). */
+export interface HourEntry { at: string; sparks: Array<[number, number, number]>; totals: Totals }
+export interface State { last_batch: string | null; skipped: string[]; pending?: string[]; hour?: HourEntry[]; ring: string[][]; countries: Record<string, CountryState> }
 export const emptyState = (): State => ({ last_batch: null, skipped: [], pending: [], ring: [], countries: {} });
 /** A non-latest slot that 404s is retried on later runs until it is this old; only then is it recorded as skipped. */
 export const SLOT_GRACE_MS = 2 * 60 * 60_000;
@@ -335,6 +337,7 @@ export function migrateState(state: State): number {
     cs.stories = cs.stories.filter(s => s.l < n);
     dropped += before - cs.stories.length;
   }
+  if (state.hour) for (const h of state.hour) h.sparks = h.sparks.filter(s => s[2] < n);
   return dropped;
 }
 
@@ -354,16 +357,17 @@ export function snapshotFrom(state: State, at: string, res: BatchResult, source 
 }
 
 /**
- * The page reads one latest.json an hour, so it carries the hour: sparks and totals of every batch this run applied
- * within 45 minutes of the newest (four quarter-hour batches). Countries already span WINDOW batches.
- * ponytail: only this run's batches count; a run that follows another inside the hour shows fewer sparks.
+ * The page reads one latest.json an hour, so it carries the hour: sparks and totals of every batch applied within
+ * 45 minutes of the tick (four quarter-hour batches), by this run or an earlier one: state.hour persists them, so a
+ * late fallback run between two dispatches publishes the same rolling hour. Countries already span WINDOW batches.
  */
-export function mergeHour(snap: Snapshot, recent: Array<{ at: string; res: BatchResult }>): Snapshot {
-  const since = new Date(Date.parse(snap.tick) - 45 * 60_000).toISOString();
-  const hour = recent.filter(r => r.at >= since && r.at <= snap.tick).map(r => r.res);
+export const HOUR_MS = 45 * 60_000;
+export function mergeHour(snap: Snapshot, hour: HourEntry[]): Snapshot {
+  const since = new Date(Date.parse(snap.tick) - HOUR_MS).toISOString();
+  const mine = hour.filter(h => h.at >= since && h.at <= snap.tick);
   const totals = { ...snap.totals };
-  for (const k of Object.keys(totals) as Array<keyof typeof totals>) totals[k] = hour.reduce((n, r) => n + r.totals[k], 0);
-  return { ...snap, totals, sparks: hour.flatMap(r => r.sparks).slice(0, SPARK_CAP) };
+  for (const k of Object.keys(totals) as Array<keyof typeof totals>) totals[k] = mine.reduce((n, h) => n + h.totals[k], 0);
+  return { ...snap, totals, sparks: mine.flatMap(h => h.sparks).slice(0, SPARK_CAP) };
 }
 
 // ---------- hours ----------
@@ -427,7 +431,7 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
   const work: string[] = [...retry, ...slots];
   if (!work.length) { log(`already at ${latest}`); writeFileSync(statePath, JSON.stringify(state)); return 0; }
   let last: { snap: Snapshot; hours: HoursDoc } | undefined;
-  const recent: Array<{ at: string; res: BatchResult }> = [];
+  const hour = (state.hour ??= []);
   for (const id of work) {
     let r = await fetchFn(`${GDELT}${id}.gkg.csv.zip`);
     if (r.status === 404 && id !== latest) {
@@ -446,7 +450,7 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
     if (res.gate) { state.skipped.push(id); if (id > (state.last_batch ?? '')) state.last_batch = id; log(`gate ${id}: ${res.gate}`); continue; }
     const prev = state.last_batch;
     applyBatch(state, res, at);
-    recent.push({ at, res });
+    hour.push({ at, sparks: res.sparks, totals: res.totals });
     if (prev && id < prev) state.last_batch = prev;   // a late-arriving slot must not move the cursor backwards
     const snap = snapshotFrom(state, at, res);
     if (!isSnapshot(snap)) throw new Error('snapshot failed its own guard');
@@ -456,7 +460,9 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
     if (!prev || id >= prev) last = { snap, hours };   // a late-arriving batch feeds the window and hours, not latest.json
     log(`${id}: ${res.totals.articles} rows, ${res.totals.placed} placed, ${res.totals.lensed} lensed, ${Object.keys(snap.countries).length} countries, ${res.sparks.length} sparks`);
   }
-  if (last) writeFileSync(join(dataDir, 'latest.json'), JSON.stringify(mergeHour(last.snap, recent)));
+  const newest = hour.reduce((m, h) => (h.at > m ? h.at : m), '');
+  state.hour = hour.filter(h => Date.parse(h.at) >= Date.parse(newest) - HOUR_MS);
+  if (last) writeFileSync(join(dataDir, 'latest.json'), JSON.stringify(mergeHour(last.snap, state.hour)));
   writeFileSync(statePath, JSON.stringify(state));
   return 0;
 }
