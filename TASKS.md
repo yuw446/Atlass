@@ -53,6 +53,10 @@ model behind the gate, #29 country check, #30 and #31 clustering, #32 retrain ro
   after the density rule, support/veto themes and the non-news filter (`docs/precision-check.md`; re-run with `npm run audit -- <batch id>`)
 - ✅ **Lens sweep** (2026-09-23): 1,689 stories double-labelled over six days; shipped rules measured 29%; theme mix
   (`crowdedOut`) 40% at 90% recall on held-out days; a Haiku headline judge 69% at 82%; stories expire after 24 h
+- ✅ **Labels committed** (2026-09-23): `docs/labels/` holds the 09-09 seed (221, human) and the sweep (1,689, claude) in
+  the #21 schema, validated by `shared/labels.ts` in `npm test`. Left of #21: `--labels` in `scripts/lens-audit.ts`
+- ⬜ **Headline judge benchmark** on the labelled holdout: Jev (TypeSafe; sign-ups paused 2026-09-23, no free tier, terms
+  forbid training on its output) and Cloudflare Workers AI (free 10k neurons/day). Gate: match Haiku's 69% at ≥ 82% recall
 - ✅ **Syndication dedupe** (2026-09-09): headlines reduced to content words in `shared/title.ts`; 80% of the shorter and half of the longer headline's
   words shared, within one country, = one story; applied after the domain cap, in the eight-batch ring and in the story ring. Live snapshot had 86 near-duplicate pairs in 843 panel stories; five batches replayed: none.
 - ⬜ **Precision check, country**: 50 placed stories, right country ≥ 40/50, same file
