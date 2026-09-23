@@ -19,7 +19,9 @@ review slugs and headline words drop the article; a domain cap stops aggregators
 took lens precision from 24% to 54% at 89% recall on that batch. A larger check on 2026-09-23 (1,689 stories over six days,
 double-labelled, fitted and held out) measured 25% to 29% on what was actually shipping; the theme-mix rule
 (`crowdedOut`: the lens is an aside to politics, courts, economy, markets, rights or society themes; conflict with no
-fighting reported; "strike" with no labour theme) raised it to 40% at 90% recall on held-out days.
+fighting reported; "strike" with no labour theme) raised it to 40% at 90% recall on held-out days. Those labels
+(`docs/labels/`) come from two readers of the same model plus an adjudicator; no human has spot-checked them, so a
+judge from the same model family (the Haiku comparison) may be favoured.
 **Still wrong, by class:** anniversary and history pieces carry the same themes as live conflict; a film about a
 historical revolt survives when its outlet has no section in the URL and no review word in the headline, and so does
 a review whose slug has "review" in the middle (`the-uprising-review-andrew-garfield`): a mid-slug rule fitted to one

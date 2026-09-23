@@ -2,6 +2,7 @@
 
 > First run: 2026-09-09, six GKG batches (9,263 rows, 7,294 placed), one batch hand-labelled.
 > Re-run: `npm run audit -- <batch id>` prints what a batch would put on the globe; label the headlines, count.
+> The labelled batch is `docs/labels/20260909163000.jsonl` (221 rows, judge `human`).
 
 ## Why
 
@@ -92,8 +93,8 @@ Country placement was not checked in this run.
 
 ## Sweep, 2026-09-23: 1,689 stories, double-labelled, with a holdout
 
-> Re-run: `scripts/lens-audit.ts` now lists what the theme mix crowds out; the corpus builder and scorer below are
-> described so the check can be repeated, not committed.
+> Labels: `docs/labels/` (30 batch files, judge `claude`; README there has the mapping and how to reproduce the
+> precision below). `scripts/lens-audit.ts` lists what the theme mix crowds out.
 
 **Why.** The globe still read as off-topic. The 09-09 figure (54%) came from one batch labelled by one reader.
 

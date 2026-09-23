@@ -24,6 +24,7 @@ There is no backend server, no API key, no Redis, no environment variables.
 ```
 shared/    lenses.ts (theme sets, scoring)  codes.ts + codes.generated.ts (FIPS→ISO, geoCode)  snapshot.ts (contract + guard)
            title.ts (trimTitle for the panel; titleTokens + sameStory for the worker's dedupe)
+           labels.ts (contract + guard for docs/labels/*.jsonl, the judged articles every precision check scores against)
 worker/    tick.ts — the whole pipeline, one entry point, stdlib only            tick.test.ts + fixtures/ (real batch, 200 rows + edge rows)
 frontend/  src/lib (pure, tested): snapshotState, fill, tween, text, densify; hooks useSnapshot, useTween
            src/components/Globe (renderer, container, useGlobeData)  src/components/StoryPanel  src/store/globeStore.ts
@@ -93,5 +94,7 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
 
 - Changing `frontend/public/geo/countries.geojson`: run `npm run gen:codes` and commit the output; `pages.yml` fails otherwise.
 - Changing the snapshot shape: update `shared/snapshot.ts`, the worker, the panel, and the fixture test together.
+- Adding labels: one `docs/labels/<batch>.jsonl` per batch in the `shared/labels.ts` shape (README there); `npm test`
+  validates every file, so a bad label fails the tick's test step. Keep labelled corpora there, not in a scratchpad.
 - `TASKS.md` is the roadmap; update it at the end of a work session. `LIMITATIONS.md` records what is known to be
   imperfect and why; add to it when an investigation ends without a fix.
