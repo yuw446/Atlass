@@ -15,13 +15,15 @@ export interface Label {
   kind: typeof LABEL_KINDS[number];
   iso: string | null;   // the judged country, ISO 3166-1 alpha-2; null when the judge did not place it
   judge: typeof JUDGES[number];
-  judged_at: string;    // ISO 8601 date
+  judged_at: string;    // ISO 8601 calendar date, YYYY-MM-DD
   reason?: string;
 }
 
 /** "Shown" is derived, never stored: a live event under a lens. */
 export const shown = (l: Label) => l.lens !== 'none' && l.kind === 'live';
 
+/** A calendar date, YYYY-MM-DD, that exists: Date.parse alone accepts 2026-02-30 and date-times. */
+const isDate = (v: unknown) => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T00:00:00Z`).toISOString().slice(0, 10) === v;
 const has = <T extends string>(list: readonly T[], v: unknown): v is T => typeof v === 'string' && (list as readonly string[]).includes(v);
 
 export function isLabel(x: unknown): x is Label {
@@ -33,7 +35,7 @@ export function isLabel(x: unknown): x is Label {
   if (typeof l.batch !== 'string' || !/^\d{14}$/.test(l.batch)) return false;
   if (!has(LABEL_LENSES, l.lens) || !has(LABEL_KINDS, l.kind) || !has(JUDGES, l.judge)) return false;
   if (l.iso !== null && (typeof l.iso !== 'string' || !/^[A-Z]{2}$/.test(l.iso))) return false;
-  if (typeof l.judged_at !== 'string' || !/^\d{4}-\d{2}-\d{2}/.test(l.judged_at) || Number.isNaN(Date.parse(l.judged_at))) return false;
+  if (!isDate(l.judged_at)) return false;
   return l.reason === undefined || typeof l.reason === 'string';
 }
 

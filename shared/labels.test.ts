@@ -20,6 +20,9 @@ test('isLabel: a well-formed label passes; a wrong enum, lowercase iso, 13-digit
   assert.equal(isLabel({ ...ok, url: 'ftp://example.com/x' }), false);
   assert.equal(isLabel({ ...ok, url: 'https://example.com/' + 'x'.repeat(2048) }), false, 'URLs over 2 KB are refused, as in the worker');
   assert.equal(isLabel({ ...ok, judged_at: 'yesterday' }), false);
+  assert.equal(isLabel({ ...ok, judged_at: '2026-02-30' }), false, 'a date that does not exist (Date.parse accepts it)');
+  assert.equal(isLabel({ ...ok, judged_at: '2026-09-23T10:00:00Z' }), false, 'a date, not a date-time');
+  assert.equal(isLabel({ ...ok, judged_at: '2028-02-29' }), true);
 });
 
 test('shown is derived: a live event under a lens', () => {
