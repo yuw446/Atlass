@@ -1,6 +1,6 @@
 # Atlas — Known Limitations
 
-> Last updated: 2026-09-09
+> Last updated: 2026-09-23
 
 Confirmed limitations, their root causes, and what is in place. `TASKS.md` tracks work; this file records what is
 accepted, deferred, or waiting on something external.
@@ -78,19 +78,19 @@ of wall-clock; the page clamps "last tick" at zero minutes and calls the feed la
 
 ## Hosting
 
-### Private repository on GitHub Pro
-Pages and the Actions budget depend on the paid plan. At every 15 minutes the tick used about 2,900 of 3,000 minutes
-a month, and with the double dispatch of 2026-09-10/11 on top GitHub stopped starting jobs on 2026-09-16 ("recent
-account payments have failed or your spending limit needs to be increased"); the feed froze. Running less often does not
-lift a refusal: the owner has to raise the spending limit or fix the payment in Billing & plans (or wait for the
-cycle to reset). Hourly from 2026-09-23 keeps it from recurring: about 720 tick minutes a month, plus the Pages deploy
-each push triggers and a minute for each late fallback `schedule` run. When jobs are refused the header
-turns amber ("feed is late"); the runs show no log, and the reason is in the check-run annotation.
+### Public repository, free Actions (since 2026-09-23)
+While the repository was private on GitHub Pro, the tick ran every 15 minutes and used about 2,900 of the 3,000 included
+Actions minutes a month. With the double dispatch of 2026-09-10/11 on top, GitHub stopped starting jobs on 2026-09-16
+("recent account payments have failed or your spending limit needs to be increased") and the feed froze for a week.
+Fewer runs would not have lifted the refusal, and there was no budget to, so the repository was made public on
+2026-09-23: Actions minutes on standard runners and Pages are free for public repositories. The tick stayed hourly.
+If jobs are ever refused again, the header turns amber ("feed is late"); the runs show no log, and the reason is in the
+check-run annotation.
 
 ### GitHub's scheduler drops most runs on this repository
 **Symptom:** the header says "feed is late" for hours; `state.skipped` holds whole ranges of batches.
 **Root cause:** GitHub documents that `schedule` events "can be delayed or dropped during periods of high load."
-On this private repository it ran the tick twice in the first eleven hours instead of 44 times.
+While this repository was private it ran the tick twice in the first eleven hours instead of 44 times.
 **In place:** `infra/tick-dispatch/`, a Cloudflare Worker that calls the workflow-dispatch API hourly at :02
 from a Durable Object alarm (punctual to the second; the owner deploys it with a repo-scoped token). Cloudflare's
 Cron Trigger (every 15 minutes) slept through its first six hours, then fired; it now only re-arms the alarm if the
