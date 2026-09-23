@@ -1,10 +1,11 @@
-# Atlas feed: one GDELT GKG batch every 15 minutes -> data/ on the gh-pages branch.
+# Atlas feed: once an hour, the hour's four GDELT GKG batches -> data/ on the gh-pages branch.
+# The punctual trigger is infra/tick-dispatch (workflow_dispatch at :02); `schedule` is the fallback.
 # Schedules only fire from the default branch. The gh-pages branch is always exactly one commit.
 name: tick
 
 on:
   schedule:
-    - cron: '*/15 * * * *'
+    - cron: '2 * * * *'
   workflow_dispatch:
 
 permissions:

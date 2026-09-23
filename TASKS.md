@@ -46,7 +46,7 @@ stays stdlib); cluster events from GDELT's embedding feed; Claude routines retra
 order: #19 origin bucket, #20 dispatcher double-fire, #21 labelled fixture and schema, #22 headline-first placement,
 #23 label script, #24 audit routine, #25 classifier code, #26 week-one measurement, #27 nightly labelling, #28 first
 model behind the gate, #29 country check, #30 and #31 clustering, #32 retrain routine, #33 remove the hand rules,
-#34 GDACS closed on measurement, #35 reserve stub. Start with #20: it is costing about 2,900 Actions minutes a month.
+#34 GDACS closed on measurement, #35 reserve stub. #19 and #20 are closed; the tick is hourly from 2026-09-23, once GitHub starts jobs again (see Known Issues).
 
 ## Next, in order (after the link is out)
 - ✅ **Precision check, lens only** (2026-09-09): 221 lensed stories from one batch labelled by headline; 24% → 54% precision at 89% recall
@@ -71,8 +71,7 @@ model behind the gate, #29 country check, #30 and #31 clustering, #32 retrain ro
 | Issue | Impact | Plan |
 |-------|--------|------|
 | GDELT tagging noise: 54% lens precision measured; keyword rules at their ceiling | Wrong-lens or wrong-country story in the panel | Learned classifier and country check, issues #21 to #29 |
-| Tick dispatcher fires twice per slot | About 2,900 wasted Actions minutes a month; the repo is at or past its 3,000 | #20: one call removed in `infra/tick-dispatch`, then `wrangler deploy` |
 | GitHub `schedule` drops most runs (2 of 44 on night one) | Feed hours stale without the dispatcher | Deploy `infra/tick-dispatch/`; keepalive keeps the fallback alive |
-| Actions budget on Pro is tight (~2,900 of 3,000 min) | Overage or stopped cron at month end | Measure in week one; drop to */20 if needed |
+| GitHub refuses every Actions job since 2026-09-16 17:21Z (budget spent at */15; annotation: "spending limit needs to be increased") | Feed frozen; tick.yml and pages.yml both refused | Owner: raise the spending limit or fix the payment in Billing & plans, then `wrangler deploy` the hourly dispatcher; hourly (~720 min/month) keeps it from recurring |
 | "Multiple instances of Three.js" console warning | None visible; react-globe.gl bundles its own three | Align versions when upgrading |
 | Greenland tessellation artifacts | Cosmetic at some zooms | Higher-resolution GeoJSON or great-circle densification |

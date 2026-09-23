@@ -27,7 +27,7 @@ shared/    lenses.ts (theme sets, scoring)  codes.ts + codes.generated.ts (FIPS�
 worker/    tick.ts — the whole pipeline, one entry point, stdlib only            tick.test.ts + fixtures/ (real batch, 200 rows + edge rows)
 frontend/  src/lib (pure, tested): snapshotState, fill, tween, text, densify; hooks useSnapshot, useTween
            src/components/Globe (renderer, container, useGlobeData)  src/components/StoryPanel  src/store/globeStore.ts
-.github/   tick.yml (*/15, no npm ci, tests gate the tick, force-push gh-pages)  pages.yml (build + publish site)  keepalive.yml
+.github/   tick.yml (hourly, no npm ci, tests gate the tick, force-push gh-pages)  pages.yml (build + publish site)  keepalive.yml
 ```
 
 **Data flow.** `lastupdate.txt` → GKG zip → `worker/tick.ts` → `data/latest.json`, `data/hours/`, `data/state.json`
@@ -65,11 +65,14 @@ on the `gh-pages` branch, which also holds the built site. Pages serves both fro
 - The tick reads the origin bucket `storage.googleapis.com/data.gdeltproject.org/` (`GDELT_ORIGIN`), not the
   `data.gdeltproject.org` CDN: the CDN's 404 for an unpublished zip is `cache-control: public, max-age=3600`, so
   every retry inside the hour got the cached miss; the bucket's 404 is `private, max-age=0`. Same paths, same bytes.
-- The repository is private on GitHub Pro. Pages works on private repos; the cron uses about 2,900 of 3,000 Actions
-  minutes a month at one minute per tick. The tick job installs nothing so it stays fast.
+- The repository is private on GitHub Pro. Pages works on private repos. The tick ran every 15 minutes until
+  2026-09-23; at about 2,900 of 3,000 Actions minutes a month it had no headroom, and GitHub stopped starting jobs on
+  2026-09-16 (the run shows no log; the reason is in the check-run annotation). Fewer runs do not lift a refusal; billing does.
+  It runs hourly from 2026-09-23 (about 720 minutes) and walks the hour's four batches; `latest.json` carries the
+  rolling hour's sparks and totals, persisted in `state.hour` (`mergeHour`). The tick job installs nothing so it stays fast.
 - GitHub's `schedule` trigger dropped 42 of the first 44 ticks on this private repo. The punctual trigger is
   `infra/tick-dispatch/`, a Cloudflare Worker whose **Durable Object alarm** calls the workflow-dispatch API at
-  :02, :17, :32, :47 (the alarm re-arms itself; `/status` shows the next ring). The Cloudflare cron on the same grid
+  :02 each hour (the alarm re-arms itself; `/status` shows the next ring). The Cloudflare cron (still every 15 minutes)
   only re-arms a dead chain and must never dispatch: when it did, every slot ran twice and the Actions budget went to
   the duplicates. `tick.yml` keeps `schedule:` as a fallback, and `keepalive.yml` pushes an empty commit weekly so
   the fallback is never disabled for inactivity.

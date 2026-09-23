@@ -6,7 +6,8 @@ import { join } from 'node:path';
 import {
   unzipSingle, parseRows, processBatch, applyBatch, snapshotFrom, accumulateHours, emptyState, articleFrom, migrateState,
   updateBaseline, seedBaselines, zOf, attOf, slotsToProcess, batchToIso, run, isSparkOnly, decodeEntities,
-  zeroTotals, GDELT, PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
+  zeroTotals, mergeHour, GDELT, PRIOR_TICKS, WINDOW, TOP, DOMAIN_CAP, MAX_SLOTS, type State, type Baseline, type Fetched,
+  type HourEntry,
 } from './tick.ts';
 import { isSnapshot, type CountrySnap } from '../shared/snapshot.ts';
 
@@ -415,6 +416,37 @@ test('run walks a gap: old missing slots are skipped, the latest is processed', 
   assert.deepEqual(after.skipped, ['20260908230000', '20260908231500']);
   assert.deepEqual(after.pending, []);
   assert.equal(after.last_batch, ID);
+});
+
+test('hourly runs publish a rolling hour: a late fallback run between two dispatches keeps all four batches', async () => {
+  const one = mkdtempSync(join(tmpdir(), 'atlas-'));
+  await run(one, stub({ [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(ID) }, [`${GDELT}${ID}.gkg.csv.zip`]: { status: 200, buf: ZIP } }), () => {});
+  const single = JSON.parse(readFileSync(join(one, 'data/latest.json'), 'utf8')).totals.articles;
+  const site = mkdtempSync(join(tmpdir(), 'atlas-'));
+  const { writeFileSync, mkdirSync } = await import('node:fs');
+  mkdirSync(join(site, 'data'), { recursive: true });
+  writeFileSync(join(site, 'data/state.json'), JSON.stringify({ ...emptyState(), last_batch: '20260908220000' }));
+  const zips: Record<string, Fetched> = {};
+  for (const id of ['20260908221500', '20260908223000', '20260908224500', '20260908230000', '20260908231500']) zips[`${GDELT}${id}.gkg.csv.zip`] = { status: 200, buf: ZIP };
+  const upTo = (id: string) => stub({ ...zips, [GDELT + 'lastupdate.txt']: { status: 200, buf: lastupdate(id) } });
+  const articles = () => JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8')).totals.articles;
+  await run(site, upTo('20260908230000'), () => {});   // the :02 dispatch walks 22:15 … 23:00
+  assert.equal(articles(), 4 * single);
+  await run(site, upTo('20260908231500'), () => {});   // a late fallback run finds only 23:15
+  assert.equal(articles(), 4 * single, '22:30 … 23:15 from state.hour, not 23:15 alone; 22:15 has left the hour');
+  const state: State = JSON.parse(readFileSync(join(site, 'data/state.json'), 'utf8'));
+  assert.deepEqual(state.hour!.map(h => h.at.slice(11, 16)), ['22:30', '22:45', '23:00', '23:15'], 'state.hour is pruned to the hour');
+  assert.equal(isSnapshot(JSON.parse(readFileSync(join(site, 'data/latest.json'), 'utf8'))), true);
+});
+
+test('mergeHour: sparks and totals of the batches within 45 minutes of the tick, in batch order', () => {
+  const entry = (m: number, i: number): HourEntry => ({ at: new Date(Date.parse(AT) - m * 60_000).toISOString(), sparks: [[i, 0, 0]], totals: { ...zeroTotals(), articles: 100 + i, lensed: i } });
+  const hour = [60, 45, 30, 15, 0].map(entry);
+  const out = mergeHour(snapshotFrom(emptyState(), AT, { byCountry: new Map(), sparks: [], totals: zeroTotals() }), hour);
+  assert.equal(out.totals.articles, 101 + 102 + 103 + 104);
+  assert.equal(out.totals.lensed, 1 + 2 + 3 + 4);
+  assert.deepEqual(out.sparks.map(s => s[0]), [1, 2, 3, 4]);
+  assert.equal(isSnapshot(out), true);
 });
 
 test('a young missing slot goes to pending, is retried next run, and a late arrival is applied without moving the cursor back', async () => {
