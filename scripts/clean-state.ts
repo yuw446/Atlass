@@ -11,7 +11,7 @@
 // publishing, because a stored story dropped here cannot be re-derived from GDELT afterwards.
 //
 // Publish by force-pushing the two files to gh-pages as the workflow does (one orphan commit), right after a tick
-// completes (ticks fire at :02 :17 :32 :47); a push that lands while a tick runs is overwritten. Check latest.json
+// completes (ticks fire hourly at :02); a push that lands while a tick runs is overwritten. Check latest.json
 // after the next tick. First run: 2026-09-09 after #16, 34 stories dropped, 30 copies collapsed.
 
 import { readFileSync, writeFileSync, copyFileSync } from 'node:fs';

@@ -4,7 +4,8 @@ compatibility_date = "2026-09-01"
 workers_dev = true    # a workers.dev URL for /arm and /status; everything else answers 404
 preview_urls = false
 
-# Re-arm path only: scheduled() calls arm(), never dispatch(). The Durable Object alarm is the clock (see README).
+# Re-arm path only: scheduled() calls arm(), never dispatch(). The Durable Object alarm is the clock (hourly, :02; see
+# README). The cron stays on the quarter hours so a dead chain is repaired within 15 minutes.
 [triggers]
 crons = ["2,17,32,47 * * * *"]
 

@@ -55,38 +55,43 @@ before `"00"`..`"09"`.
 GDELT's main GKG feed is English. A separate translated feed covering 65 languages exists and is a later addition.
 The legend says "English-language media".
 
-### Fifteen-minute batches, two-hour window
-Fill colour, lens mix, and the panel's stories aggregate the last 8 batches; sparks are the current batch. A single
+### Fifteen-minute batches, hourly ticks, two-hour window
+The tick runs hourly and applies each of the hour's four batches in turn. Fill colour, lens mix, and the panel's
+stories aggregate the last 8 batches; sparks and the header totals are the last hour's batches. A run that follows
+another inside the hour (a fallback `schedule` run) carries only its own batches, so that hour shows fewer sparks. A single
 batch holds one or two lensed stories for a typical country, which is why the window exists.
 
 ### Publish race, lag, and clock drift in the feed
-`lastupdate.txt` is written before the GKG file finishes uploading, so a run minutes after the quarter hour can see a
+`lastupdate.txt` is written before the GKG file finishes uploading, so a run minutes after the hour can see a
 404 for the latest file; the worker retries four times 30 seconds apart, then leaves it for the next run. Those
 retries used to go to the `data.gdeltproject.org` CDN, which caches a 404 for an hour, so they could only repeat the
 first miss; the worker now reads the origin bucket, whose 404 is not cached. The GKG
 file can also lag the export file by more than half an hour (seen 2026-09-09: 13:30, 13:45 and 14:00 exports
 present, GKG files absent, index already at 14:00). Missing non-latest slots therefore go to `state.pending` and are
-retried at the start of every run for two hours before being recorded as skipped; a late batch feeds the window and
+retried at the start of every run (so twice, hourly) for two hours before being recorded as skipped; a late batch feeds the window and
 the hour buckets but never overwrites `latest.json` with an older tick. Batch labels can run up to ten minutes ahead
-of wall-clock; the page clamps "last tick" at zero minutes.
+of wall-clock; the page clamps "last tick" at zero minutes and calls the feed late past 90 minutes.
 
 ## Hosting
 
 ### Private repository on GitHub Pro
-Pages and the Actions budget depend on the paid plan. The cron uses about 2,900 of 3,000 minutes a month. A
-month-end overage stops the cron until the budget resets; the header turns amber ("feed is late").
+Pages and the Actions budget depend on the paid plan. At every 15 minutes the tick used about 2,900 of 3,000 minutes
+a month, and with the double dispatch of 2026-09-10/11 on top GitHub stopped starting jobs on 2026-09-16 ("recent
+account payments have failed or your spending limit needs to be increased"); the feed froze for a week. Hourly since
+2026-09-23: about 720 tick minutes a month, plus the Pages deploy each push triggers. When jobs are refused the header
+turns amber ("feed is late"); the runs show no log, and the reason is in the check-run annotation.
 
 ### GitHub's scheduler drops most runs on this repository
 **Symptom:** the header says "feed is late" for hours; `state.skipped` holds whole ranges of batches.
 **Root cause:** GitHub documents that `schedule` events "can be delayed or dropped during periods of high load."
 On this private repository it ran the tick twice in the first eleven hours instead of 44 times.
-**In place:** `infra/tick-dispatch/`, a Cloudflare Worker that calls the workflow-dispatch API every 15 minutes
+**In place:** `infra/tick-dispatch/`, a Cloudflare Worker that calls the workflow-dispatch API hourly at :02
 from a Durable Object alarm (punctual to the second; the owner deploys it with a repo-scoped token). Cloudflare's
-Cron Trigger on the same grid slept through its first six hours, then fired; it now only re-arms the alarm if the
+Cron Trigger (every 15 minutes) slept through its first six hours, then fired; it now only re-arms the alarm if the
 chain has died and never dispatches (from 2026-09-09 until the fix was deployed it did, and every slot ran the tick
 twice: about 100 extra billed minutes a day). The workflow's own `schedule:` stays as a second fallback. When a run does
 happen after a gap it catches up 32 slots (eight hours); older gaps are recorded in `state.skipped` and stay holes in
-`hours/`. Expected tick age with the dispatcher is under ten minutes at the median.
+`hours/`. Expected tick age with the dispatcher is about half an hour at the median, 65 minutes at most.
 
 ### Pages cache
 Pages serves `data/latest.json` with `cache-control: max-age=600`. The page polls every minute with `cache: 'no-cache'`,

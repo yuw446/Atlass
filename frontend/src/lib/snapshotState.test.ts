@@ -10,12 +10,13 @@ const snap = (tick = '2026-09-09T00:30:00Z'): Snapshot => ({
   window: 8, lenses: ['conflict', 'disaster', 'unrest'], countries: {}, sparks: [],
 });
 
-test('ok body → ok; age past 60 minutes → stale; clock flips ok to stale', () => {
+test('ok body → ok, still ok just before the next hourly tick; age past 90 minutes → stale; clock flips ok to stale', () => {
   const s1 = reduce(initialState, { type: 'ok', body: snap(), now: T0 + 5 * 60_000 });
   assert.equal(s1.status, 'ok');
-  const s2 = reduce(initialState, { type: 'ok', body: snap(), now: T0 + 61 * 60_000 });
+  assert.equal(reduce(initialState, { type: 'ok', body: snap(), now: T0 + 70 * 60_000 }).status, 'ok');
+  const s2 = reduce(initialState, { type: 'ok', body: snap(), now: T0 + 91 * 60_000 });
   assert.equal(s2.status, 'stale');
-  const s3 = reduce(s1, { type: 'clock', now: T0 + 90 * 60_000 });
+  const s3 = reduce(s1, { type: 'clock', now: T0 + 120 * 60_000 });
   assert.equal(s3.status, 'stale');
   assert.equal(s3.snapshot, s1.snapshot);
 });

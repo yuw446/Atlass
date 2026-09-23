@@ -1,8 +1,8 @@
 # Atlas
 
 **The news, by place.** News is organised by topic; Atlas re-projects it onto the globe so the people and the
-environment behind a story stay in frame. Every 15 minutes about a thousand stories from GDELT's Global Knowledge
-Graph land on the country they are about. Three lenses, chosen because those topics are spatial by nature: conflict,
+environment behind a story stay in frame. Every hour a few thousand stories from GDELT's Global Knowledge Graph
+(published every 15 minutes) land on the country they are about. Three lenses, chosen because those topics are spatial by nature: conflict,
 disaster and climate, unrest. Click a country to read what is being written about it right now.
 
 Live: **https://yuw446.github.io/Atlass/** · data: `https://yuw446.github.io/Atlass/data/latest.json`
@@ -10,7 +10,7 @@ Live: **https://yuw446.github.io/Atlass/** · data: `https://yuw446.github.io/At
 ## How it works
 
 ```
-GDELT GKG (every 15 min)  →  worker/tick.ts on a GitHub Actions cron
+GDELT GKG (every 15 min)  →  worker/tick.ts, hourly on GitHub Actions (dispatched by infra/tick-dispatch)
                           →  gh-pages branch: data/latest.json, data/hours/, data/state.json  (one commit, always)
                           →  GitHub Pages serves the site and the data from the same origin
 frontend (Vite + React + Globe.gl) polls data/latest.json every minute and paints the globe
@@ -40,7 +40,7 @@ shared/        lenses, country codes (generated from the GeoJSON), the snapshot 
 worker/        tick.ts: one GDELT batch in, three files out; tests against a real fixture batch
 frontend/      Vite + React 19 + react-globe.gl + Tailwind v4; frontend/src/lib is pure and tested
 scripts/       gen-codes.ts
-.github/       tick.yml (*/15), pages.yml (site build on push to main), keepalive.yml (weekly)
+.github/       tick.yml (hourly), pages.yml (site build on push to main), keepalive.yml (weekly)
 docs/history/  the original brief and the first attempt's planning notes
 ```
 

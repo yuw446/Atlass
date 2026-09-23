@@ -1,8 +1,8 @@
 // Pure state machine for the snapshot the page reads. No React, no fetch, no import.meta: testable under node --test.
 //
-//           ┌──────── ok body, isSnapshot ✓, age ≤ 60 ────────┐
+//           ┌──────── ok body, isSnapshot ✓, age ≤ 90 ────────┐
 //           │                                                  ▼
-//  loading ─┼─ ok body, isSnapshot ✓, age > 60 ───────────► stale ──(fresh tick)──► ok
+//  loading ─┼─ ok body, isSnapshot ✓, age > 90 ───────────► stale ──(fresh tick)──► ok
 //           │                                                  ▲                    │
 //           ├─ 404, nothing stored ──► nodata ──(ok body)──────┘                    │
 //           └─ error / isSnapshot ✗ ──► error (keeps last good) ◄──────────────────┘ (fetch fails later)
@@ -19,7 +19,8 @@ export type SnapEvent =
   | { type: 'restore'; body: unknown; now: number }
   | { type: 'clock'; now: number };
 
-export const STALE_MINUTES = 60;
+/** The tick runs hourly at :02, so a healthy feed reaches about 65 minutes old before the next one lands. */
+export const STALE_MINUTES = 90;
 export const initialState: SnapState = { status: 'loading', snapshot: null };
 
 /** Minutes since the batch time, never negative: GDELT labels can run up to ten minutes ahead of the clock. */

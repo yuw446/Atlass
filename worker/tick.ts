@@ -1,4 +1,5 @@
-// worker/tick.ts — one GDELT GKG batch in, three files out. No dependencies. Run by GitHub Actions every 15 min.
+// worker/tick.ts — GDELT GKG batches in, three files out. No dependencies. Run by GitHub Actions once an hour, which
+// walks the hour's four quarter-hour batches one by one; latest.json then speaks for that hour (mergeHour).
 //
 // lastupdate.txt ──► slots to process (last_batch+15m … latest, cap MAX_SLOTS; empty state → latest only)
 //       │
@@ -20,7 +21,7 @@
 //       ▼
 //   baselines: seed on first run; ticks++ ; a = max(1/672, 1/ticks); fast/base/var (x = log1p(n), 0 when absent) ; z ; att
 //       ▼
-//   data/hours/YYYY-MM-DD.json bucket ; data/latest.json (isSnapshot-checked) ; data/state.json
+//   data/hours/YYYY-MM-DD.json bucket ; data/latest.json (isSnapshot-checked, sparks + totals of the hour) ; data/state.json
 //
 // The workflow does the git part: amend + force-push of the gh-pages branch (one commit, always).
 
@@ -352,6 +353,19 @@ export function snapshotFrom(state: State, at: string, res: BatchResult, source 
   return { schema: SNAPSHOT_SCHEMA, tick: at, generated_at: new Date().toISOString(), source, totals, window: WINDOW, lenses: LENSES.map(l => l.id), countries, sparks: res.sparks };
 }
 
+/**
+ * The page reads one latest.json an hour, so it carries the hour: sparks and totals of every batch this run applied
+ * within 45 minutes of the newest (four quarter-hour batches). Countries already span WINDOW batches.
+ * ponytail: only this run's batches count; a run that follows another inside the hour shows fewer sparks.
+ */
+export function mergeHour(snap: Snapshot, recent: Array<{ at: string; res: BatchResult }>): Snapshot {
+  const since = new Date(Date.parse(snap.tick) - 45 * 60_000).toISOString();
+  const hour = recent.filter(r => r.at >= since && r.at <= snap.tick).map(r => r.res);
+  const totals = { ...snap.totals };
+  for (const k of Object.keys(totals) as Array<keyof typeof totals>) totals[k] = hour.reduce((n, r) => n + r.totals[k], 0);
+  return { ...snap, totals, sparks: hour.flatMap(r => r.sparks).slice(0, SPARK_CAP) };
+}
+
 // ---------- hours ----------
 /** `lenses` names the lens order the buckets were written in; a doc without it predates 2026-09-11 and is four wide. */
 export interface HoursDoc { date: string; lenses?: string[]; hours: Record<string, Record<string, { n: number; lens: number[]; zsum: number; k: number }>> }
@@ -413,6 +427,7 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
   const work: string[] = [...retry, ...slots];
   if (!work.length) { log(`already at ${latest}`); writeFileSync(statePath, JSON.stringify(state)); return 0; }
   let last: { snap: Snapshot; hours: HoursDoc } | undefined;
+  const recent: Array<{ at: string; res: BatchResult }> = [];
   for (const id of work) {
     let r = await fetchFn(`${GDELT}${id}.gkg.csv.zip`);
     if (r.status === 404 && id !== latest) {
@@ -421,7 +436,7 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
       continue;
     }
     // GDELT writes lastupdate.txt before the (largest) GKG upload finishes; a run a few minutes past the
-    // quarter hour can race it. Wait it out. If it never appears, do not advance: the next cron retries.
+    // hour can race it. Wait it out. If it never appears, do not advance: the next run retries.
     for (let i = 0; r.status === 404 && i < latestRetries; i++) { log(`latest ${id} not published yet, retry ${i + 1}/${latestRetries}`); await sleep(retryDelayMs); r = await fetchFn(`${GDELT}${id}.gkg.csv.zip`); }
     if (r.status === 404) { log(`latest ${id} still missing; leaving last_batch at ${state.last_batch ?? 'none'}`); break; }
     if (r.status !== 200 || !r.buf) throw new Error(`${id}: HTTP ${r.status}`);
@@ -431,6 +446,7 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
     if (res.gate) { state.skipped.push(id); if (id > (state.last_batch ?? '')) state.last_batch = id; log(`gate ${id}: ${res.gate}`); continue; }
     const prev = state.last_batch;
     applyBatch(state, res, at);
+    recent.push({ at, res });
     if (prev && id < prev) state.last_batch = prev;   // a late-arriving slot must not move the cursor backwards
     const snap = snapshotFrom(state, at, res);
     if (!isSnapshot(snap)) throw new Error('snapshot failed its own guard');
@@ -440,7 +456,7 @@ export async function run(siteDir: string, fetchFn: FetchFn = realFetch, log: (s
     if (!prev || id >= prev) last = { snap, hours };   // a late-arriving batch feeds the window and hours, not latest.json
     log(`${id}: ${res.totals.articles} rows, ${res.totals.placed} placed, ${res.totals.lensed} lensed, ${Object.keys(snap.countries).length} countries, ${res.sparks.length} sparks`);
   }
-  if (last) writeFileSync(join(dataDir, 'latest.json'), JSON.stringify(last.snap));
+  if (last) writeFileSync(join(dataDir, 'latest.json'), JSON.stringify(mergeHour(last.snap, recent)));
   writeFileSync(statePath, JSON.stringify(state));
   return 0;
 }

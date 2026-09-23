@@ -34,7 +34,7 @@ export interface Snapshot {
   window: number;         // batches aggregated per country
   lenses: string[];       // lens ids, in order
   countries: Record<string, CountrySnap>;
-  sparks: Array<[number, number, number]>;   // [lat, lon, lensIdx], current batch only
+  sparks: Array<[number, number, number]>;   // [lat, lon, lensIdx], the last hour's batches (as are totals)
 }
 
 const isNum = (v: unknown): v is number => typeof v === 'number' && Number.isFinite(v);
