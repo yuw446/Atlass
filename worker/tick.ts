@@ -200,6 +200,7 @@ export function articleFrom(cols: string[], at: string, totals: Totals): { artic
   const scores = scoreLenses(themes);
   const lens = dominantLens(scores, Number(words) || 0);
   if (lens < 0) return { reject: 'unlensed' };
+  // No fallback to the next lens: on the 2026-09-23 corpus it re-lensed 13 of 646 crowded rows, 4 rightly, 9 wrongly.
   if (crowdedOut(lens, themes, scores[lens])) return { reject: 'crowded' };
   const tone = Number.parseFloat(toneStr ?? '');
   let image = validUrl(cols[COL.IMAGE], true);
