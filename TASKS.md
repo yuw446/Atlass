@@ -46,7 +46,7 @@ stays stdlib); cluster events from GDELT's embedding feed; Claude routines retra
 order: #19 origin bucket, #20 dispatcher double-fire, #21 labelled fixture and schema, #22 headline-first placement,
 #23 label script, #24 audit routine, #25 classifier code, #26 week-one measurement, #27 nightly labelling, #28 first
 model behind the gate, #29 country check, #30 and #31 clustering, #32 retrain routine, #33 remove the hand rules,
-#34 GDACS closed on measurement, #35 reserve stub. #19 and #20 are closed; the tick is hourly from 2026-09-23, once GitHub starts jobs again (see Known Issues).
+#34 GDACS closed on measurement, #35 reserve stub. #19 and #20 are closed; the tick is hourly and the repo public since 2026-09-23.
 
 ## Next, in order (after the link is out)
 - ✅ **Precision check, lens only** (2026-09-09): 221 lensed stories from one batch labelled by headline; 24% → 54% precision at 89% recall
@@ -74,6 +74,6 @@ model behind the gate, #29 country check, #30 and #31 clustering, #32 retrain ro
 |-------|--------|------|
 | GDELT tagging noise: 29% measured on shipped rules (2026-09-23), 40% with the theme mix; a headline judge scored 69% | Wrong-lens or wrong-country story in the panel | Learned classifier and country check, issues #21 to #29 |
 | GitHub `schedule` drops most runs (2 of 44 on night one) | Feed hours stale without the dispatcher | Deploy `infra/tick-dispatch/`; keepalive keeps the fallback alive |
-| GitHub refuses every Actions job since 2026-09-16 17:21Z (budget spent at */15; annotation: "spending limit needs to be increased") | Feed frozen; tick.yml and pages.yml both refused | Owner: raise the spending limit or fix the payment in Billing & plans, then `wrangler deploy` the hourly dispatcher; hourly (~720 min/month) keeps it from recurring |
+| ~~GitHub refused every Actions job 2026-09-16 to 09-23 (Pro minutes spent at */15)~~ | Feed frozen for a week | Resolved 2026-09-23: repo made public (free Actions and Pages), hourly dispatcher deployed |
 | "Multiple instances of Three.js" console warning | None visible; react-globe.gl bundles its own three | Align versions when upgrading |
 | Greenland tessellation artifacts | Cosmetic at some zooms | Higher-resolution GeoJSON or great-circle densification |

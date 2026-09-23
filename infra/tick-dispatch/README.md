@@ -1,7 +1,7 @@
 # tick-dispatch
 
 A Cloudflare Worker with one job: once an hour, ask GitHub to run `tick.yml`. GitHub's own `schedule` trigger
-dropped 42 of the first 44 runs on this private repo, so something punctual has to press the button.
+dropped 42 of the first 44 runs while the repo was private, so something punctual has to press the button.
 
 **The clock is a Durable Object alarm, not a Cron Trigger.** Alarms fire to the second. One object holds one alarm;
 `alarm()` re-arms the next hour before it dispatches, so a failed dispatch cannot break the chain. The cron
@@ -48,7 +48,7 @@ at any time from the GitHub settings page; the worker then logs HTTP 401 and doe
   the first six hours (zero invocations in `workersInvocationsAdaptive`, while an HTTP handler running the same code
   worked). Hence the alarm. The cron came alive at 20:00 UTC the same day, and because `scheduled()` then also
   dispatched, every slot sent two `workflow_dispatch` calls 30 s apart until this fix was deployed: about 100 extra one-minute
-  jobs a day, the whole 3,000-minute Actions budget. `scheduled()` now only re-arms.
+  jobs a day, the whole 3,000-minute Actions budget of the then-private repo. `scheduled()` now only re-arms.
 - `wrangler secret put` before the first deploy asks to create the worker; answer Y. The secret survives later deploys.
 
 ## Cost
