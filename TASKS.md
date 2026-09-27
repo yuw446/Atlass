@@ -1,9 +1,9 @@
 # ATLAS — Tasks & Progress
 
-> Last updated: 2026-09-23
+> Last updated: 2026-09-27
 > Stack: Node 24 worker (stdlib) · Vite + React 19 + react-globe.gl + Tailwind v4 · GitHub Actions + Pages
 > Design of record: `~/.gstack/projects/yuw446-Atlass/faye-claude-project-revival-core-e38374-design-20260907-115409.md`
-> Tests: `npm test` (node --test; 65 tests across shared/, worker/, frontend/src/lib). Render paths are checked by `/qa` on the deployed page.
+> Tests: `npm test` (node --test; 88 tests across shared/, worker/, frontend/src/lib, scripts/). Render paths are checked by `/qa` on the deployed page.
 
 | Symbol | Meaning |
 |--------|---------|
@@ -55,8 +55,15 @@ model behind the gate, #29 country check, #30 and #31 clustering, #32 retrain ro
   (`crowdedOut`) 40% at 90% recall on held-out days; a Haiku headline judge 69% at 82%; stories expire after 24 h
 - ✅ **Labels committed** (2026-09-23): `docs/labels/` holds the 09-09 seed (221, human) and the sweep (1,689, claude) in
   the #21 schema, validated by `shared/labels.ts` in `npm test`. Left of #21: `--labels` in `scripts/lens-audit.ts`
+- 🔄 **Daily audit routine** (#24): `npm run audit:served` lists the served stories nobody has judged, files one verdict
+  each as label rows in `docs/labels/<batch>.jsonl`, and writes `docs/audits/<date>.md` (precision by lens, right country,
+  worst classes, per-country table, delta). Routine `atlas-audit` (Sonnet 5, 06:00 UTC) follows `docs/routines/audit.md`;
+  its first run judges the whole snapshot (471 stories on 2026-09-27)
 - ⬜ **Headline judge benchmark** on the labelled holdout: Jev (TypeSafe; sign-ups paused 2026-09-23, no free tier, terms
-  forbid training on its output) and Cloudflare Workers AI (free 10k neurons/day). Gate: match Haiku's 69% at ≥ 82% recall
+  forbid training on its output) and Cloudflare Workers AI (free 10k neurons/day). Gate: match Haiku's 69% at ≥ 82% recall.
+  CLM-8B (Jev-compatible, Apache-2.0, self-hosted) measured 2026-09-27: 39% at 81% zero-shot, 45% with a better option
+  set; a logistic head on its Qwen3-8B encoder (question appended) 63% at 80%, on Qwen3-4B 67% at 81%, flat past
+  ~500 labels (`docs/precision-check.md`)
 - ✅ **Syndication dedupe** (2026-09-09): headlines reduced to content words in `shared/title.ts`; 80% of the shorter and half of the longer headline's
   words shared, within one country, = one story; applied after the domain cap, in the eight-batch ring and in the story ring. Live snapshot had 86 near-duplicate pairs in 843 panel stories; five batches replayed: none.
 - ⬜ **Precision check, country**: 50 placed stories, right country ≥ 40/50, same file
