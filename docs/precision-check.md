@@ -127,6 +127,12 @@ which contributed one story.
 | theme mix + election and past headlines | 402 | 42.3% | 89.9% |
 | all four designs, as delivered | 248 | 54.0% | 70.9% |
 | a small LLM (Haiku) reading headline + URL, eight-line prompt | 225 | **69.3%** | 82.5% |
+| CLM-8B zero-shot, Haiku's rubric as a four-way choice, P(assigned lens) threshold fit on train | 391 | 39.1% | 81.0% |
+| CLM-8B zero-shot, twelve options worded as answers (lenses split, off-topic neighbours named) | 352 | 45.5% | 84.7% |
+| logistic head on Qwen3-8B embedding of headline + URL + rubric question, trained on the 1,033 train rows | 241 | 63.1% | 80.4% |
+| same head on Qwen3-4B | 227 | 67.4% | 81.0% |
+| same head on Qwen3-1.7B | 293 | 54.6% | 84.7% |
+| same head on Qwen3-0.6B | 357 | 45.4% | 85.7% |
 
 On-topic stories lost, train (of 257) / holdout (of 189), per component: headline court 0/5, routine 0/6, market
 0/6, opinion 3/4, past 0/1, election 0/0, listing 0/0; theme mix civic 10/14, nofight 2/4, strike 1/0, aside 0/3.
@@ -150,6 +156,33 @@ funding and routine-weather stories carry the same hazard themes as live events;
 through generic security themes. No theme separates these. A reader of the headline does: the judge above, at matched
 recall, is 22 points more precise than the best hand rules. That is the measured case for a headline judge;
 record it here when it is built.
+
+**CLM-8B, 2026-09-27.** [CLM](https://github.com/Contrastive-LM/CLM) is an open (Apache-2.0) Jev-compatible model: a
+frozen Qwen3-8B encoder plus a 75 MB head. It was run on an M5 through `transformers` on MPS (last-token pooling, text
+without special tokens) and handed to CLM's own `Engine`. That reproduced the playground screenshot the repo captured
+against real vLLM (84.8% / 98.8% / 2.00; here 83.0% / 98.7% / 2.00). The question was Haiku's rubric as a `Choice` over
+conflict, disaster, unrest and none, with headline and URL as the state. On the holdout the top choice matched the
+assigned lens at 48% precision and 49% recall; a P(assigned lens) threshold fitted on train at 82.5% recall kept 391
+stories at 39.1% and 81.0%, no better than the theme mix. It named the right lens for 48% of shown stories and chose
+unrest 7 times in 656. Two checks against a wording artefact: a yes/no question on the assigned lens scored 24.6% at
+67.7%, and a logistic probe on the raw Qwen3-8B embeddings (train split, lens one-hot) 35.6% at 77.2%. It scores by
+subject, not by the rubric: "Remembering Hurricane Isabel" gets 0.70 disaster, an Army drone-battalion story 0.74
+conflict. Not a judge or a labeller for this task as released.
+
+Follow-up the same day. Most of what CLM let through is a current neighbouring topic (train, at the recall cutoff:
+politics 135, preparedness 43, crime 42, routine military 36, markets 31; history and commemoration only 9), so a
+"current?" pass first was not tried. Naming those neighbours as options, every option worded as an answer and summed
+per lens, raised the zero-shot score to 45.5% at 84.7%; "What is this news story mainly about?" in place of the rubric
+was worse for every option set. The signal is in the encoder, not in CLM's head: a standardised logistic regression
+on the Qwen3-8B last-token embedding of headline, URL and the rubric question, trained on the train rows with its
+threshold taken from 5-fold out-of-fold scores, scored 63.1% at 80.4% on the holdout (curve: 73.9% at 70%, 61.4% at
+82.5%). The same probe without the question appended scored 43.7% at 82.5%, so asking the question is most of it (the
+first probe above, 35.6%, was also unstandardised). That is six points under Haiku from 1,033 labels, and it still
+needs an 8B encoder per headline, so it cannot run in the tick. Learning curve (8B, three seeds below 100%; holdout precision at 82.5% recall on
+the curve): 56.3% from 258 rows, 61.6% from 516, 61.5% from 774, 61.4% from 1,033, so more labels of this kind do not
+close the gap. Encoder size, same measure: 0.6B 49.5%, 1.7B 56.7%, 4B 64.7%, 8B 61.4%. Seeds move this by 3 to 4 points
+and six probe variants have now been scored on this holdout, so 4B over 8B is not a finding; 4B matching 8B is. On the
+M5, the 4B encoder took 158 s for all 1,689 rows, the 0.6B 35 s.
 
 **Story age.** The per-country story ring is score-ordered and never expired, so a strong old story outranked new
 ones indefinitely, and after the 2026-09-16 outage every panel would have opened on the previous week. Stories now
