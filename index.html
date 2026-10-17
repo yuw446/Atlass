@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ATLAS — the news, by place</title>
+    <meta name="description" content="The news re-projected onto place: every hour, stories land on the globe where they happen. Conflict, disaster and climate, unrest." />
+
+    <!-- The globe texture is 770 KB; start it with the HTML rather than after the lazy globe chunk. Three.js loads images
+         with crossorigin="anonymous", so the preload must match or the browser fetches it twice. -->
+    <link rel="preload" as="image" href="/Atlass/geo/earth-blue-marble.jpg" crossorigin="anonymous" />
+
+    <!-- Fonts — link preload, not CSS @import, to avoid render blocking -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Cormorant+Garamond:ital,wght@0,400;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" crossorigin src="/Atlass/assets/index-DQJ0Z_Pj.js"></script>
+    <link rel="modulepreload" crossorigin href="/Atlass/assets/rolldown-runtime-hePW80VL.js">
+    <link rel="modulepreload" crossorigin href="/Atlass/assets/globe-vendor-DdBGKZ4N.js">
+    <link rel="stylesheet" crossorigin href="/Atlass/assets/index-Baa6kePo.css">
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html>
