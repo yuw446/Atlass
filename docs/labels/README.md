@@ -33,6 +33,13 @@ One file per GDELT batch, `<batch id>.jsonl`, one JSON object per line:
 
 ## What is here
 
+### From 2026-09-27: the daily audit (`claude`)
+The `atlas-audit` routine (`docs/routines/audit.md`) judges every served story that has no label yet and appends one row
+per story to its batch file through `npm run audit:served -- <latest.json> --append`. Same readers' rubric as the sweep,
+but the judge picks the topic lens directly: `lens` is the lens the story fits (or `none`), `kind` is `live` only for a
+current on-topic event, a borderline story keeps the served lens with `kind: other`, and `iso` is the judged country.
+`reason` is `<class>: <note>` with the sweep's classes. `docs/audits/<date>.md` scores the day's snapshot against them.
+
 ### `20260909163000.jsonl`: the 09-09 precision check (221 rows, `human`)
 All placed and titled articles in one batch, labelled by headline. 54 are live on a lens. The 9/11 anniversaries are
 `conflict` + `commemoration`, one history piece is `conflict` + `history`, two reviews are `none` + `review`, and the
