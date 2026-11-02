@@ -154,3 +154,39 @@ record it here when it is built.
 **Story age.** The per-country story ring is score-ordered and never expired, so a strong old story outranked new
 ones indefinitely, and after the 2026-09-16 outage every panel would have opened on the previous week. Stories now
 leave the ring a day after their batch (`STORY_TTL_MS`).
+
+## Country spot check, by hand (2026-09-26)
+
+> A manual baseline before #29, which measures the vote and headline-first placement against the labels and owns
+> the TASKS.md tick.
+
+**Sample.** 50 stories drawn with a seeded shuffle (LCG, seed 20260926) from the 453 panel stories in the 19:00Z
+snapshot, i.e. what a reader can click, not raw placed rows. Each labelled by headline and URL; six whose headline
+did not name a place were read (Nigeria air power, the NCPA history note, the *Special Forces* piece, the fairy-wren
+study, the ZeroHedge op-ed, Greenpeace's pictures of the week).
+
+**Rule.** Right = the country the story is mainly about, or either side of a two-country event (Taliban–Pakistan
+border fighting on AF, India's UNGA reply on PK). Arguable = a defensible pin but not the one a reader would pick.
+
+**Result: 42 right, 7 arguable, 1 wrong.** Target was ≥ 40/50: met strictly (42) and leniently (49).
+
+| # (draw order) | Placed | Story | Better pin | Verdict |
+|---|--------|-------|-----------|---------|
+| 48 | PH | Pahala food drive after Hurricane Lala (Hawaii Tribune-Herald) | US | wrong |
+| 15 | EG | NCPA: Pompey assassinated in Egypt, 48 BC | IT (Rome) | arguable |
+| 20 | IL | Mondoweiss on NYT opinion about Gaza | US / PS | arguable |
+| 30 | IR | Navy Secretary's letter to the USS *Abraham Lincoln* crew | US | arguable |
+| 41 | NZ | Antarctic ozone hole biggest in 20 years (NZ scientists) | Antarctica | arguable |
+| 44 | RU | ZeroHedge: "Should Europeans overthrow their ruling class" | Europe (DE) | arguable |
+| 49 | ES | Greenpeace pictures of the week (Spain first of several) | several | arguable |
+| 50 | RU | Asharq Al-Awsat: Europe preparing for a "2030 war" | Europe | arguable |
+
+The most-mentioned vote holds. Four of the seven arguable cases are a story about one place told through another
+(a US ship near Iran, European politics about Russia); the other three have no single right country (Antarctica,
+a photo roundup, ancient Rome). None is a gazetteer miss. The one wrong pin was not traced to its row. Several
+stories sat under the wrong lens but on the right country (a defence-literacy launch under Disaster, a reality show
+filmed in Malaysia under Conflict): country is the stronger half of the pipeline.
+
+Outside the sample, the same snapshot had three more wrong pins: "Michigan veterans turn on Republicans" on IR,
+"Nigerian soldiers … protest over unpaid allowances" on GN, and an El Niño restaurant-menu feature on MX. The first two
+are the #30 class: a story about one country whose text names another more often.
