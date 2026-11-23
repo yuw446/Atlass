@@ -7,11 +7,12 @@
   "scripts": {
     "dev:frontend": "npm run dev --workspace=frontend",
     "build:frontend": "npm run build --workspace=frontend",
-    "test": "node --experimental-strip-types --test \"shared/*.test.ts\" \"worker/*.test.ts\" \"frontend/src/lib/*.test.ts\"",
+    "test": "node --experimental-strip-types --test \"shared/*.test.ts\" \"worker/*.test.ts\" \"frontend/src/lib/*.test.ts\" \"scripts/*.test.ts\"",
     "tick": "node --experimental-strip-types worker/tick.ts",
     "gen:codes": "node --experimental-strip-types scripts/gen-codes.ts",
     "audit": "node --experimental-strip-types scripts/lens-audit.ts",
-    "clean:state": "node --experimental-strip-types scripts/clean-state.ts"
+    "clean:state": "node --experimental-strip-types scripts/clean-state.ts",
+    "audit:served": "node --experimental-strip-types scripts/audit-snapshot.ts"
   },
   "type": "module",
   "engines": {
